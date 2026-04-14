@@ -1,0 +1,42 @@
+nativecam (2.0b) UNRELEASED; urgency=medium
+
+  * Port to Python 3 / GTK3
+  * Add horizontal side drilling (Side Drill) for multi-spindle machines
+  * Fix phantom GTK popup windows after LinuxCNC shutdown
+  * Fix set_from_icon_name to use Gtk.IconSize enum
+  * Fix gettext.install unicode= removed in Python 3
+  * Fix use_stock / stock_id deprecated GTK3 buttons replaced with icon-name
+  * Update override_font to CSS provider
+  * Code cleanup and Python 3 compatibility
+
+ -- NativeCAM Community <nativecam@github.com>  Sun, 13 Apr 2026 10:00:00 +0300
+
+
+nativecam (0.1.14a) UNRELEASED; urgency=medium
+
+  fix bug of rotation multiplied by 25.4
+
+ -- Fernand Veilleux <fernveilleux@gmail.com>  Tue, 28 Nov 2017 08:07:00 -0500
+
+nativecam (0.1.14) UNRELEASED; urgency=medium
+
+  add validation of inputs with dialog
+  add warning dialog when skip block not active
+  new class for calculator dialog
+  update lathe ngc files except threading
+  change units on the fly
+  add complementary python code in cfg files
+  minor changes
+  bug fixes
+
+ -- Fernand Veilleux <fernveilleux@gmail.com>  Mon, 27 Nov 2017 20:50:00 -0500
+
+nativecam (0.1.13) UNRELEASED; urgency=medium
+
+  add threading automatic thread depth and multithreads
+  minor fixes
+
+ -- Fernand Veilleux <fernveilleux@gmail.com>  Wed, 15 Nov 2017 20:47:00 -0500
+
+# Older entries have been removed from this changelog.
+# To read the complete changelog use `apt changelog nativecam`.
