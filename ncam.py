@@ -2551,7 +2551,11 @@ class NCam(gtk.VBox):
         if not os.path.isfile(os.path.join(NCAM_DIR, NGC_DIR, 'M123')):
             create_M_file()
 
-        self.load_currentWork()
+        try :
+            self.load_currentWork()
+        except Exception as e :
+            print(_('Error loading current work: %s') % str(e))
+            print(_('Starting with empty project'))
         self.treeview.connect("cursor-changed", self.get_selected_feature)
         self.get_selected_feature(self.treeview)
         self.show_all()
