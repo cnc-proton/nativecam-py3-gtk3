@@ -5,10 +5,13 @@
 # ------------------------------------------------------------------
 
 APP_COPYRIGHT = '''Copyright © 2017 Fernand Veilleux : fernveilleux@gmail.com
-Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru'''
-APP_AUTHORS = ['Fernand Veilleux, maintainer', 'Nick Drobchenko, initiator',
+Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru
+Copyright © 2026 CNC Proton (Python 3 / GTK3 Port)'''
+APP_AUTHORS = ['Fernand Veilleux (original author)',
+               'Nick Drobchenko (initiator)',
                'Meison Kim', 'Alexander Wigen', 'Konstantin Navrockiy', 'Mit Zot',
-               'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen']
+               'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen',
+               'CNC Proton (Python 3 / GTK3 port, Side Drill)']
 
 APP_VERSION = "2.0b"
 
@@ -129,7 +132,8 @@ GROUP_HEADER_TYPES = ['items', 'sub-header', 'header']
 
 XML_TAG = "lcnc-ncam"
 
-HOME_PAGE = 'https://github.com/FernV/NativeCAM'
+HOME_PAGE = 'https://github.com/cnc-proton/nativecam-py3-gtk3'
+DONATE_URL = 'https://github.com/sponsors/cnc-proton'
 
 class tv_select :  # 'enum' items
     none, feature, items, header, param = list(range(5))
@@ -4460,35 +4464,122 @@ class NCam(gtk.VBox):
         self.set_do_buttons_state()
 
     def action_about(self, *arg):
-        dialog = gtk.AboutDialog()
-        dialog.set_name(APP_TITLE)
+        dlg = gtk.Dialog(title=_('About NativeCAM'),
+                         transient_for=self.get_toplevel(),
+                         modal=True)
+        dlg.set_resizable(False)
+        vbox = dlg.get_content_area()
+        vbox.set_spacing(8)
+        vbox.set_border_width(16)
+
+        # Logo + title
+        hbox_top = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=12)
+        try :
+            logo_path = os.path.join(SYS_DIR, 'graphics', 'linuxcncicon.png')
+            pix = GdkPixbuf.Pixbuf.new_from_file_at_size(logo_path, 64, 64)
+            hbox_top.pack_start(gtk.Image.new_from_pixbuf(pix), False, False, 0)
+        except Exception :
+            pass
 
         try :
             ver = subprocess.check_output(["dpkg-query", "--show", "--showformat=${Version}", "nativecam"])
-            dialog.set_version(ver.decode('utf-8').strip())
+            version_str = ver.decode('utf-8').strip()
         except :
-            dialog.set_version(APP_VERSION)
+            version_str = APP_VERSION
 
-        try :
-            data = open('/usr/share/doc/nativecam/copyright', 'r').read()
-            dialog.set_license(data)
-        except :
-            dialog.set_license(APP_LICENCE)
+        vbox_title = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=2)
+        lbl_title = gtk.Label()
+        lbl_title.set_markup('<b><big>NativeCAM for LinuxCNC</big></b>')
+        lbl_ver = gtk.Label(label=_('Version: ') + version_str)
+        lbl_comment = gtk.Label(label=APP_COMMENTS)
+        vbox_title.pack_start(lbl_title, False, False, 0)
+        vbox_title.pack_start(lbl_ver, False, False, 0)
+        vbox_title.pack_start(lbl_comment, False, False, 0)
+        hbox_top.pack_start(vbox_title, True, True, 0)
+        vbox.pack_start(hbox_top, False, False, 0)
+        vbox.pack_start(gtk.Separator(), False, False, 4)
 
+        # Authors
+        lbl_a = gtk.Label()
+        lbl_a.set_markup('<b>' + _('Authors:') + '</b>')
+        lbl_a.set_halign(gtk.Align.START)
+        vbox.pack_start(lbl_a, False, False, 0)
+        for author in APP_AUTHORS :
+            l = gtk.Label(label='  ' + author)
+            l.set_halign(gtk.Align.START)
+            vbox.pack_start(l, False, False, 0)
+        vbox.pack_start(gtk.Separator(), False, False, 4)
+
+        # Copyright
+        lbl_copy = gtk.Label(label=APP_COPYRIGHT)
+        lbl_copy.set_halign(gtk.Align.START)
+        lbl_copy.set_line_wrap(True)
+        vbox.pack_start(lbl_copy, False, False, 0)
+        vbox.pack_start(gtk.Separator(), False, False, 4)
+
+        # QR + links
+        hbox_qr = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=16)
+        qr_generated = False
         try :
-            logo_path = os.path.join(SYS_DIR, 'graphics', 'linuxcncicon.png')
-            logo = GdkPixbuf.Pixbuf.new_from_file_at_size(logo_path, 64, 64)
-            dialog.set_logo(logo)
+            import qrcode, tempfile
+            qr = qrcode.QRCode(version=2, box_size=4, border=2)
+            qr.add_data(HOME_PAGE)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color='black', back_color='white')
+            tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+            qr_img.save(tmp.name)
+            tmp.close()
+            pix_qr = GdkPixbuf.Pixbuf.new_from_file_at_size(tmp.name, 140, 140)
+            os.unlink(tmp.name)
+            frame_qr = gtk.Frame()
+            frame_qr.add(gtk.Image.new_from_pixbuf(pix_qr))
+            hbox_qr.pack_start(frame_qr, False, False, 0)
+            qr_generated = True
         except Exception :
-            dialog.set_logo(None)
+            pass
 
-        dialog.set_authors(APP_AUTHORS)
-        dialog.set_comments(APP_COMMENTS)
-        dialog.set_copyright(APP_COPYRIGHT)
-        dialog.set_website(HOME_PAGE)
-        dialog.run()
-        dialog.destroy()
+        vbox_links = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=8)
+        if not qr_generated :
+            lbl_hint = gtk.Label(label=_('Install python3-qrcode to show QR code'))
+            lbl_hint.set_halign(gtk.Align.START)
+            vbox_links.pack_start(lbl_hint, False, False, 0)
 
+        lbl_gh = gtk.Label()
+        lbl_gh.set_markup('<b>GitHub:</b>')
+        lbl_gh.set_halign(gtk.Align.START)
+        vbox_links.pack_start(lbl_gh, False, False, 0)
+        btn_github = gtk.LinkButton.new_with_label(HOME_PAGE, 'cnc-proton/nativecam-py3-gtk3')
+        btn_github.set_halign(gtk.Align.START)
+        vbox_links.pack_start(btn_github, False, False, 0)
+
+        lbl_don = gtk.Label()
+        lbl_don.set_markup('<b>' + _('Support the project:') + '</b>')
+        lbl_don.set_halign(gtk.Align.START)
+        vbox_links.pack_start(lbl_don, False, False, 4)
+        btn_donate = gtk.Button(label='❤  ' + _('Donate via GitHub Sponsors'))
+        btn_donate.connect('clicked', lambda w: webbrowser.open(DONATE_URL))
+        vbox_links.pack_start(btn_donate, False, False, 0)
+        hbox_qr.pack_start(vbox_links, True, True, 0)
+        vbox.pack_start(hbox_qr, False, False, 0)
+
+        dlg.add_button(_('License'), gtk.ResponseType.HELP)
+        dlg.add_button(_('Close'), gtk.ResponseType.CLOSE)
+        dlg.show_all()
+        while True :
+            response = dlg.run()
+            if response == gtk.ResponseType.HELP :
+                try :
+                    data = open('/usr/share/doc/nativecam/copyright', 'r').read()
+                except :
+                    data = APP_LICENCE
+                lic = gtk.MessageDialog(transient_for=dlg, modal=True,
+                    message_type=gtk.MessageType.INFO,
+                    buttons=gtk.ButtonsType.CLOSE, text=data)
+                lic.run()
+                lic.destroy()
+            else :
+                break
+        dlg.destroy()
     def action_save_template(self, *arg):
         xml = self.treestore_to_xml()
         etree.ElementTree(xml).write(os.path.join(NCAM_DIR, CATALOGS_DIR, \
