@@ -985,7 +985,7 @@ class VKB(object):
 
     def __exit__(self, type, value, traceback):
         self.is_closing = True
-        self.dlg.destroy()  # Просто удаляем окно, никаких GLib.idle_add и hide
+        self.dlg.destroy()  
         self.dlg = None
 
 
@@ -1112,8 +1112,6 @@ class CellRendererMx(gtk.CellRendererText):
         sw.set_shadow_type(gtk.ShadowType.ETCHED_IN)
         sw.set_policy(gtk.PolicyType.NEVER, gtk.PolicyType.AUTOMATIC)
         
-        # В GTK3 нужно использовать get_content_area().pack_start с флагами True, True
-        # чтобы окно с ползунком растягивалось на всю доступную высоту
         self.list_window.get_content_area().pack_start(sw, True, True, 0)
 
         self.list_window.realize()
@@ -1165,7 +1163,7 @@ class CellRendererMx(gtk.CellRendererText):
         new_val = model.get_value(ls_itr, 1)
         
         self.lst_is_closing = True
-        self.list_window.destroy()  # Мгновенное удаление
+        self.list_window.destroy()  
         
         return response, new_val
 
@@ -1200,7 +1198,7 @@ class CellRendererMx(gtk.CellRendererText):
         new_val = self.stringedit_entry.get_text()
         
         self.str_is_closing = True
-        self.stringedit_window.destroy()  # Мгновенное удаление
+        self.stringedit_window.destroy() 
         return response, new_val
 
     def list_keypress(self, widget, event) :
@@ -1237,8 +1235,6 @@ class CellRendererMx(gtk.CellRendererText):
             self.inputKey = ''
             return None
 
-        # Клонируем координаты ячейки, чтобы GTK не удалил их из памяти
-        # до того, как откроется диалоговое окно в отложенном потоке
         self.cell_area = gdk.Rectangle()
         self.cell_area.x = cell_area.x
         self.cell_area.y = cell_area.y
@@ -1350,7 +1346,7 @@ class CellRendererMx(gtk.CellRendererText):
                 self.refresh_fn(self.tv)
             return False
 
-        # Отложенный запуск диалогов (спасает GTK3 от краха памяти)
+
         if self.editdata_type in NUMBER_TYPES :
             GLib.idle_add(defer_number)
             return None
@@ -2528,7 +2524,6 @@ class NCam(gtk.VBox):
         self.create_actions()
 
         self.uimanager = gtk.UIManager()
-        # Сохраняем жесткую ссылку на горячие клавиши, чтобы Питон их не удалил
         self.accel_group = self.uimanager.get_accel_group()
 
         self.uimanager.insert_action_group(self.action_group, 0)
@@ -3384,7 +3379,6 @@ class NCam(gtk.VBox):
             act = gtk.Action(name=actionname, label=label, tooltip=tooltip, stock_id=stock_id)
             if callback is not None:
                 act.connect('activate', callback, args)
-            # Обход бага PyGObject: предупреждение депрекации ломает C-API и вызывает SystemError
             import warnings
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", DeprecationWarning)
@@ -3594,7 +3588,6 @@ class NCam(gtk.VBox):
 
                 self.items_path = model.get_path(itr)
                 n_children = model.iter_n_children(itr)
-                # Безопасное извлечение индексов для GTK3
                 self.items_lpath = tuple(self.items_path.get_indices()) + (n_children,)
 
             elif self.selected_type in ["header", 'sub-header'] :
@@ -4125,7 +4118,6 @@ class NCam(gtk.VBox):
         self.focused_widget = renderer.get_treeview()
         model = self.focused_widget.get_model()
         
-        # Железная защита: если таблица обновляется, прерываем сохранение
         if model is None:
             return 
             
@@ -4631,11 +4623,11 @@ class NCam(gtk.VBox):
                     self.create_second_treeview()
                     self.treeview2.show_all()
                 
-                # Определяем, куда мы хотим положить frame2
+
                 target_parent = self.feature_Hpane if self.actionSideSide.get_active() else self.feature_pane
                 current_parent = self.frame2.get_parent()
                 
-                # Переносим виджет ТОЛЬКО если родитель поменялся
+
                 if current_parent != target_parent:
                     if current_parent is not None:
                         current_parent.remove(self.frame2)
@@ -4656,9 +4648,8 @@ class NCam(gtk.VBox):
             self.treeview.get_column(1).set_visible(self.actionSingleView.get_active() or \
                                         not self.actionHideCol.get_active())
             
-            return False  # Обязательно, чтобы функция не зациклилась!
+            return False  
 
-        # Поручаем GTK выполнить обновление сразу, как только он освободится
         GLib.idle_add(_deferred_layout)
 
     def on_scale_change_value(self, widget):

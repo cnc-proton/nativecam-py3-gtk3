@@ -385,14 +385,12 @@ class PrefEditor():
         self.imgAddMenu.set_from_pixbuf(self.get_pixbuf('circle.png', self.getint(self.adj_addmenuiconsize.get_value())))
 
     def toolbar_isize(self, *args):
-        # GTK3: set_from_icon_name требует Gtk.IconSize enum, не int
         self.imgToolbar.set_from_icon_name('document-save', gtk.IconSize.LARGE_TOOLBAR)
 
     def toolbar_isize1(self, *args):
         self.adj_histiconsize.set_value(msizecomp[self.getint(self.adj_tbIconSize.get_value())])
 
     def menu_isize(self, *args):
-        # GTK3: set_from_icon_name требует Gtk.IconSize enum, не int
         self.imgMenu.set_from_icon_name('document-open', gtk.IconSize.MENU)
 
     def menu_isize1(self, *args):
@@ -432,7 +430,6 @@ class PrefEditor():
         self.config_pref.set('virtual_kb', 'height', str(self.getint(self.adj_vkbheight.get_value())))
         self.config_pref.set('virtual_kb', 'cancel_on_focus_out', str(self.vkb_cancel.get_active()))
 
-        # Изменено 'wb' на 'w' для Python 3
         with open(self.cfg_file, 'w') as configfile:
             self.config_pref.write(configfile)
 
@@ -513,7 +510,6 @@ class PrefEditor():
                 self.config_def.add_section('plasma')
             self.config_def.set('plasma', 'test_mode', str(self.plasma_tmode_chk.get_active()))
 
-        # Изменено 'wb' на 'w' для Python 3
         with open(self.pref_file, 'w') as configfile:
             self.config_def.write(configfile)
 
