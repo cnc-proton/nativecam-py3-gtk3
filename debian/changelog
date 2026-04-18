@@ -1,3 +1,18 @@
+nativecam (2.0b-1) UNRELEASED; urgency=medium
+
+  * Fix Master treeview width - use set_position() instead of set_size_request()
+  * Fix DuplicateOptionError Python 3.13 in material.cfg and probe-stock.cfg
+  * Fix empty treeview on first launch in lathe/mill/plasma mode
+  * Fix phantom GTK windows after LinuxCNC exit
+  * Add custom About dialog with logo, QR code and Donate button
+  * Add Side Drill feature for multi-spindle machines
+  * Update AUTHORS, COPYRIGHT, HOME_PAGE, DONATE_URL
+  * Add Conflicts: nativecam (<< 2.0b)
+  * Add Recommends: python3-qrcode
+
+ -- CNC Proton <info@cnc-proton.com>  Fri, 17 Apr 2026 10:55:48 +0000
+
+
 nativecam (2.0b) UNRELEASED; urgency=medium
 
   * Port to Python 3 / GTK3
