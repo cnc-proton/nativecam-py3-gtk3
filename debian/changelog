@@ -1,5 +1,17 @@
 nativecam (2.0b-1) UNRELEASED; urgency=medium
 
+  * Fix shebang python3 compatibility
+
+ -- CNC Proton <info@cnc-proton.com>  Sat, 18 Apr 2026 18:54:00 +0300
+
+nativecam (2.0b-1) UNRELEASED; urgency=medium
+
+  * Fix shebang python3 compatibility
+
+ -- CNC Proton <info@cnc-proton.com>  Sat, 18 Apr 2026 18:51:26 +0300
+
+nativecam (2.0b-1) UNRELEASED; urgency=medium
+
   * Fix Master treeview width - use set_position() instead of set_size_request()
   * Fix DuplicateOptionError Python 3.13 in material.cfg and probe-stock.cfg
   * Fix empty treeview on first launch in lathe/mill/plasma mode
