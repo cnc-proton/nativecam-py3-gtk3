@@ -985,7 +985,7 @@ class VKB(object):
 
     def __exit__(self, type, value, traceback):
         self.is_closing = True
-        self.dlg.destroy()  
+        self.dlg.destroy() 
         self.dlg = None
 
 
@@ -1163,7 +1163,7 @@ class CellRendererMx(gtk.CellRendererText):
         new_val = model.get_value(ls_itr, 1)
         
         self.lst_is_closing = True
-        self.list_window.destroy()  
+        self.list_window.destroy() 
         
         return response, new_val
 
@@ -1198,7 +1198,7 @@ class CellRendererMx(gtk.CellRendererText):
         new_val = self.stringedit_entry.get_text()
         
         self.str_is_closing = True
-        self.stringedit_window.destroy() 
+        self.stringedit_window.destroy()  
         return response, new_val
 
     def list_keypress(self, widget, event) :
@@ -1234,6 +1234,7 @@ class CellRendererMx(gtk.CellRendererText):
         if self.editdata_type == 'prjname' :
             self.inputKey = ''
             return None
+
 
         self.cell_area = gdk.Rectangle()
         self.cell_area.x = cell_area.x
@@ -1345,7 +1346,6 @@ class CellRendererMx(gtk.CellRendererText):
             if self.refresh_fn:
                 self.refresh_fn(self.tv)
             return False
-
 
         if self.editdata_type in NUMBER_TYPES :
             GLib.idle_add(defer_number)
@@ -2563,7 +2563,7 @@ class NCam(gtk.VBox):
         self.addVBox.hide()
         self.set_layout(None)
 
-        self.feature_pane.set_size_request(int(self.tv_w_adj.get_value()), 100)
+        self.feature_Hpane.set_position(int(self.tv_w_adj.get_value()))
 
         self.clipboard = gtk.Clipboard.get(gdk.SELECTION_CLIPBOARD)
         self.edit_menu_activate()
@@ -3753,7 +3753,7 @@ class NCam(gtk.VBox):
             tv.expand_row(path, True)
 
     def tv_w_adj_value_changed(self, *arg):
-        self.feature_pane.set_size_request(int(self.tv_w_adj.get_value()), 100)
+        self.feature_Hpane.set_position(int(self.tv_w_adj.get_value()))
 
     def col_width_adj_value_changed(self, *arg):
         self.treeview.get_column(0).set_min_width(int(self.col_width_adj.get_value()))
@@ -4464,7 +4464,6 @@ class NCam(gtk.VBox):
         vbox.set_spacing(8)
         vbox.set_border_width(16)
 
-        # Logo + title
         hbox_top = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=12)
         try :
             logo_path = os.path.join(SYS_DIR, 'graphics', 'linuxcncicon.png')
@@ -4491,7 +4490,6 @@ class NCam(gtk.VBox):
         vbox.pack_start(hbox_top, False, False, 0)
         vbox.pack_start(gtk.Separator(), False, False, 4)
 
-        # Authors
         lbl_a = gtk.Label()
         lbl_a.set_markup('<b>' + _('Authors:') + '</b>')
         lbl_a.set_halign(gtk.Align.START)
@@ -4502,14 +4500,12 @@ class NCam(gtk.VBox):
             vbox.pack_start(l, False, False, 0)
         vbox.pack_start(gtk.Separator(), False, False, 4)
 
-        # Copyright
         lbl_copy = gtk.Label(label=APP_COPYRIGHT)
         lbl_copy.set_halign(gtk.Align.START)
         lbl_copy.set_line_wrap(True)
         vbox.pack_start(lbl_copy, False, False, 0)
         vbox.pack_start(gtk.Separator(), False, False, 4)
 
-        # QR + links
         hbox_qr = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=16)
         qr_generated = False
         try :
@@ -4623,11 +4619,9 @@ class NCam(gtk.VBox):
                     self.create_second_treeview()
                     self.treeview2.show_all()
                 
-
                 target_parent = self.feature_Hpane if self.actionSideSide.get_active() else self.feature_pane
                 current_parent = self.frame2.get_parent()
                 
-
                 if current_parent != target_parent:
                     if current_parent is not None:
                         current_parent.remove(self.frame2)
