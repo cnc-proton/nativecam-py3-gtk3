@@ -2,6 +2,12 @@ nativecam (2.0b-1) UNRELEASED; urgency=medium
 
   * Fix shebang python3 compatibility
 
+ -- CNC Proton <info@cnc-proton.com>  Sat, 18 Apr 2026 19:04:57 +0300
+
+nativecam (2.0b-1) UNRELEASED; urgency=medium
+
+  * Fix shebang python3 compatibility
+
  -- CNC Proton <info@cnc-proton.com>  Sat, 18 Apr 2026 18:54:00 +0300
 
 nativecam (2.0b-1) UNRELEASED; urgency=medium
