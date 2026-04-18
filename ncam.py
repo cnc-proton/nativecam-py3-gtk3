@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 # ------------------------------------------------------------------
 # --  NO USER SETTINGS IN THIS FILE -- EDIT PREFERENCES INSTEAD  ---
