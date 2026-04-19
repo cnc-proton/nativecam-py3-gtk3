@@ -19,7 +19,7 @@ with **Debian 13 Trixie** and **LinuxCNC 2.9+**.
 2. Install it using:
 
 ```bash
-sudo apt install ./nativecam_2.0b_all.deb
+sudo apt install ./nativecam_2.0b-2_all.deb
 ```
 
 ## Usage
