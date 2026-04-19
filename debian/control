@@ -9,7 +9,7 @@ Package: nativecam
 #Note: omitting Depends: for linuxcnc|linuxcnc-uspace
 #      allows install for RIP-only systems
 Depends: python3, python3-lxml, python3-gi, gir1.2-gtk-3.0, ${misc:Depends}
-Conflicts: nativecam (<< 2.0b-1)
+Conflicts: nativecam (<< 2.0b-2)
 Recommends: linuxcnc | linuxcnc-uspace, truetype-tracer, python3-qrcode
 Architecture: all
 Description: Conversational programming for LinuxCNC
