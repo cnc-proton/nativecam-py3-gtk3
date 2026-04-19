@@ -5183,7 +5183,7 @@ def verify_ini(fname, ctlog, in_tab) :
 
         parser = ConfigParser.RawConfigParser()
         try :
-            parser.readfp(io.BytesIO(txt1))
+            parser.read_string(txt1)
 
             dp = parser.get('DISPLAY', 'DISPLAY').lower()
             if dp not in ['gmoccapy', 'axis', 'gscreen'] :
