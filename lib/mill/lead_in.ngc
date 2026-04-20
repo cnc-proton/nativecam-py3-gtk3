@@ -297,14 +297,15 @@ o<lead_in> sub
 			o172 endif
 			G#<entry_dir> X#<_cut_current_x> Y#<_cut_current_y> I#<i> J#<j>
 		o102 else
+			(same order as full_depth: reach cut Z first, then comp + arc — avoids arcing at machine home / rapid Z)
+			G0 Z[#<_z_clear> + #<_cut_current_z>]
+			G1 Z#<_cut_current_z> F#<_feed_vertical>
 			o182 if [#<_tool_dynamic_dia> GT 0.0]
 				G[#<opt> + 0.1] D#<_tool_dynamic_dia>
 			o182 else
 				G#<opt>
 			o182 endif
 			G#<entry_dir> X#<_cut_current_x> Y#<_cut_current_y> I#<i> J#<j>
-			G0 Z[#<_z_clear> + #<_cut_current_z>]
-			G1 Z#<_cut_current_z> F#<_feed_vertical>
 		o102 endif
 		
 	o<comp00> endif

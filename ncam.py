@@ -41,8 +41,46 @@ import platform
 import pref_edit
 import tkinter as Tkinter
 import math
+import contextlib
+import warnings
+
+# PyGObject warns on every Gtk.Action / UIManager / ImageMenuItem call until a GAction port.
+warnings.filterwarnings(
+    'ignore', category=DeprecationWarning,
+    message=r'.*Gtk\..* is deprecated')
 
 SYS_DIR = os.path.dirname(os.path.realpath(__file__))
+
+# GTK3 + deprecated GtkAction: create_menu_item() triggers harmless Gtk-CRITICAL in C
+# (gtk_accel_label_set_accel_closure). Filter that line only; other CRITICALs still log.
+@contextlib.contextmanager
+def _suppress_gtk_accel_menu_item_critical():
+    needle = 'gtk_accel_label_set_accel_closure'
+    ids = []
+
+    def _handler(domain, level, message, udata):
+        try:
+            msg = message if isinstance(message, str) else message.decode('utf-8', 'replace')
+        except Exception:
+            msg = ''
+        if needle in msg:
+            return
+        GLib.log_default_handler(domain, level, message, udata)
+
+    for dom in ('Gtk', 'Gdk'):
+        try:
+            ids.append((dom, GLib.log_set_handler(
+                dom, GLib.LogLevelFlags.LEVEL_CRITICAL, _handler, None)))
+        except Exception:
+            pass
+    try:
+        yield
+    finally:
+        for dom, hid in ids:
+            try:
+                GLib.log_remove_handler(dom, hid)
+            except Exception:
+                pass
 
 locale.setlocale(locale.LC_ALL, '')
 decimal_point = locale.localeconv()["decimal_point"]
@@ -151,6 +189,9 @@ TB_CATALOG = {}
 EXCL_MESSAGES = {}
 GLOBAL_PREF = None
 UNIQUE_ID = 9
+# True only when running `python3 ncam.py` (standalone dialog). GladeVCP embeds NCam and owns gtk.main();
+# calling gtk.main_quit() from a handler there tears down GTK while the X embed is still dying → Gdk warnings.
+NCAM_STANDALONE = False
 
 UI_INFO = '''
 <ui>
@@ -471,6 +512,17 @@ if platform.system() != 'Windows' :
         import linuxcnc
     except ImportError as detail :
         err_exit(detail)
+
+# One hidden Tk for Tcl "send" to Axis. A fresh Tk() on every auto-refresh makes Tk set
+# XSetErrorHandler while GDK may have an error trap pushed → Gdk-WARNING (GladeVCP + GTK3).
+_tk_axis_send_root = None
+
+def _tk_axis_remote_open(fname):
+    global _tk_axis_send_root
+    if _tk_axis_send_root is None:
+        _tk_axis_send_root = Tkinter.Tk()
+        _tk_axis_send_root.withdraw()
+    _tk_axis_send_root.tk.call("send", "axis", ("remote", "open_file_name", fname))
 
 def require_ini_items(fname, ini_instance):
     global NCAM_DIR, NGC_DIR
@@ -2038,6 +2090,7 @@ class Preferences(object):
             self.side_by_side = read_boolean(config, 'layout', 'side_by_side', True)
             self.sub_hdrs_in_tv1 = read_boolean(config, 'layout', 'subheaders_in_master', False)
             self.hide_value_column = read_boolean(config, 'layout', 'hide_value_column', False)
+            self.autorefresh = read_boolean(config, 'layout', 'autorefresh', False)
             treeview_icon_size = read_int(config, 'icons_size', 'treeview', 28)
             add_menu_icon_size = read_int(config, 'icons_size', 'add_menu', 24)
             menu_icon_size = read_int(config, 'icons_size', 'menu', 4)
@@ -2317,6 +2370,9 @@ class NCam(gtk.VBox):
     __gproperties = __gproperties__
 
     def __init__(self, *a, **kw):
+        # Standalone: __main__ builds GtkDialog then NCam() before vbox.add(ncam), so there is no
+        # parent during __init__ — pass accel_toplevel=window to attach AccelGroup before create_menubar().
+        self._accel_toplevel_override = kw.pop('accel_toplevel', None)
         global NCAM_DIR, default_metric, NGC_DIR, SYS_DIR, no_ini, TOOL_TABLE, \
             GLOBAL_PREF, machine_metric
 
@@ -2369,6 +2425,7 @@ class NCam(gtk.VBox):
         self.selected_type = 'xxx'
         self.selection = None
         self.timeout = None
+        self._ncam_shutting_down = False
         self.treestore_selected = None
         self.treeview = None
         self.treeview2 = None
@@ -2533,6 +2590,12 @@ class NCam(gtk.VBox):
         self.uimanager.add_ui_from_string(UI_INFO)
 
         self.get_actions_reference()
+        w = self._accel_toplevel_override
+        if w is None:
+            tw = self.get_toplevel()
+            if tw is not None and tw != self and isinstance(tw, gtk.Window):
+                w = tw
+        self._prime_accel_for_window(w)
         self.create_menubar()
 
         self.main_toolbar = self.uimanager.get_widget("/ToolBar")
@@ -2560,8 +2623,16 @@ class NCam(gtk.VBox):
             print(_('Starting with empty project'))
         self.treeview.connect("cursor-changed", self.get_selected_feature)
         self.get_selected_feature(self.treeview)
+
+        # AccelGroup must be on the GtkWindow *before* first map/show, or GtkAccelLabel CRITICAL.
+        # connect('realize', ...) after show_all() misses the first realize — too late for embed.
+        self.connect('realize', self._on_realize)
+        self._setup_toplevel_integration()
+        # Tiny first allocation (e.g. tab not sized yet) → GtkToolbar negative width / distribute CRITICAL.
+        self.set_size_request(120, 80)
+
         self.show_all()
-        
+
         self.actionCurrent.set_visible(not self.pref.autosave)
         self.addVBox.hide()
         self.set_layout(None)
@@ -2572,11 +2643,7 @@ class NCam(gtk.VBox):
         self.edit_menu_activate()
         self.treeview.grab_focus()
         self.show_not_connected = True
-        self.actionAutoRefresh.connect('toggled', self.autorefresh_call)
-
-        # Fix phantom windows: when LinuxCNC closes, destroy all GTK toplevels
-        # GTK combo popups and dialogs become orphaned if not explicitly closed
-        self.connect('realize', self._on_realize)
+        self.actionAutoRefresh.connect('toggled', self._autorefresh_toggled)
 
 
     def ask_to_create_standalone(self, fromdirs) :
@@ -2678,186 +2745,230 @@ class NCam(gtk.VBox):
                     shutil.rmtree(srcdir)
 
             tdir = os.path.join(SYS_DIR, s)
-            if os.path.islink(srcdir) and (tdir != srcdir) :
-                os.remove(srcdir)
+            # Point NCAM_DIR/<s> at the system tree. Skip unlink if already correct
+            # (string compare tdir != srcdir is always true for user vs system paths).
+            link_ok = False
+            if os.path.lexists(srcdir) and os.path.islink(srcdir):
+                try:
+                    link_ok = os.path.samefile(srcdir, tdir)
+                except OSError:
+                    link_ok = False
+            if not link_ok and os.path.lexists(srcdir) and os.path.islink(srcdir):
+                try:
+                    os.unlink(srcdir)
+                except FileNotFoundError:
+                    pass
             # replace dir with a link
-            if not os.path.isdir(srcdir) :
-                os.symlink(tdir, srcdir)
+            if not os.path.lexists(srcdir):
+                try:
+                    os.symlink(tdir, srcdir)
+                except Exception as err:
+                    mess_dlg(_("Error creating link : %(s)s -> %(d)s\nCode : %(c)s")
+                             % {'s': tdir, 'd': srcdir, 'c': err})
+
+    def _null_accel_label_closure(self, widget):
+        """GTK3: GtkAction.create_menu_item() can leave GtkAccelLabel with a closure that
+        gtk_accel_group_from_accel_closure does not resolve → CRITICAL. Clearing the
+        closure removes the broken shortcut *display*; keys may still work via the window."""
+        def visit(w):
+            if isinstance(w, gtk.AccelLabel):
+                try:
+                    w.set_accel_closure(None)
+                except Exception:
+                    pass
+            if isinstance(w, gtk.Container):
+                try:
+                    w.foreach(lambda c: visit(c))
+                except Exception:
+                    pass
+        try:
+            visit(widget)
+        except Exception:
+            pass
 
     def create_menubar(self):
         def create_mi(_action, imgfile = None):
+            try:
+                _action.disconnect_accelerator()
+            except Exception:
+                pass
             mi = _action.create_menu_item()
-            if imgfile == None :
-                mi.set_image(_action.create_icon(menu_icon_size))
-            else :
-                img = gtk.Image()
-                img.set_from_pixbuf(get_pixbuf(imgfile, add_menu_icon_size))
-                mi.set_image(img)
+            self._null_accel_label_closure(mi)
+            # Radio/Toggle actions yield GtkCheckMenuItem — no set_image (GTK3).
+            if isinstance(mi, gtk.ImageMenuItem):
+                if imgfile is None:
+                    mi.set_image(_action.create_icon(menu_icon_size))
+                else:
+                    img = gtk.Image()
+                    img.set_from_pixbuf(get_pixbuf(imgfile, add_menu_icon_size))
+                    mi.set_image(img)
             return mi
 
-        if self.menubar is not None :
-            self.menubar.destroy()
-        self.menubar = gtk.MenuBar()
+        with _suppress_gtk_accel_menu_item_critical():
+            if self.menubar is not None :
+                self.menubar.destroy()
+            self.menubar = gtk.MenuBar()
 
 #        a = create_mi(self.actionOpen)
 #        a.destroy
 
-        # Projects menu
-        file_menu = gtk.Menu()
-        file_menu.append(create_mi(self.actionNew))
-        file_menu.append(create_mi(self.actionOpen))
-        file_menu.append(create_mi(self.actionOpenExample))
-        file_menu.append(gtk.SeparatorMenuItem())
-        file_menu.append(create_mi(self.actionSave))
-        file_menu.append(create_mi(self.actionCurrent))
-        file_menu.append(create_mi(self.actionSaveTemplate))
-        file_menu.append(gtk.SeparatorMenuItem())
-        file_menu.append(create_mi(self.actionSaveNGC))
+            # Projects menu
+            file_menu = gtk.Menu()
+            file_menu.append(create_mi(self.actionNew))
+            file_menu.append(create_mi(self.actionOpen))
+            file_menu.append(create_mi(self.actionOpenExample))
+            file_menu.append(gtk.SeparatorMenuItem())
+            file_menu.append(create_mi(self.actionSave))
+            file_menu.append(create_mi(self.actionCurrent))
+            file_menu.append(create_mi(self.actionSaveTemplate))
+            file_menu.append(gtk.SeparatorMenuItem())
+            file_menu.append(create_mi(self.actionSaveNGC))
 
-        f_menu = create_mi(self.actionProject)
-        f_menu.set_submenu(file_menu)
-        self.menubar.append(f_menu)
+            f_menu = create_mi(self.actionProject)
+            f_menu.set_submenu(file_menu)
+            self.menubar.append(f_menu)
 
-        # Edit menu
-        ed_menu = gtk.Menu()
-        ed_menu.append(create_mi(self.actionUndo))
-        ed_menu.append(create_mi(self.actionRedo))
-        ed_menu.append(gtk.SeparatorMenuItem())
+            # Edit menu
+            ed_menu = gtk.Menu()
+            ed_menu.append(create_mi(self.actionUndo))
+            ed_menu.append(create_mi(self.actionRedo))
+            ed_menu.append(gtk.SeparatorMenuItem())
 
-        ed_menu.append(create_mi(self.actionCut))
-        ed_menu.append(create_mi(self.actionCopy))
-        ed_menu.append(create_mi(self.actionPaste))
-        ed_menu.append(gtk.SeparatorMenuItem())
+            ed_menu.append(create_mi(self.actionCut))
+            ed_menu.append(create_mi(self.actionCopy))
+            ed_menu.append(create_mi(self.actionPaste))
+            ed_menu.append(gtk.SeparatorMenuItem())
 
-        ed_menu.append(create_mi(self.actionAdd))
-        ed_menu.append(create_mi(self.actionDuplicate))
-        ed_menu.append(create_mi(self.actionDelete))
-        ed_menu.append(gtk.SeparatorMenuItem())
+            ed_menu.append(create_mi(self.actionAdd))
+            ed_menu.append(create_mi(self.actionDuplicate))
+            ed_menu.append(create_mi(self.actionDelete))
+            ed_menu.append(gtk.SeparatorMenuItem())
 
-        ed_menu.append(create_mi(self.actionMoveUp))
-        ed_menu.append(create_mi(self.actionMoveDown))
-        ed_menu.append(gtk.SeparatorMenuItem())
+            ed_menu.append(create_mi(self.actionMoveUp))
+            ed_menu.append(create_mi(self.actionMoveDown))
+            ed_menu.append(gtk.SeparatorMenuItem())
 
-        ed_menu.append(create_mi(self.actionAppendItm))
-        ed_menu.append(create_mi(self.actionRemoveItm))
+            ed_menu.append(create_mi(self.actionAppendItm))
+            ed_menu.append(create_mi(self.actionRemoveItm))
 
-        self.sep1 = gtk.SeparatorMenuItem()
-        ed_menu.append(self.sep1)
-        self.adt_mi = create_mi(self.actionDataType)
-        ed_menu.append(self.adt_mi)
-        self.art_mi = create_mi(self.actionRevertType)
-        ed_menu.append(self.art_mi)
+            self.sep1 = gtk.SeparatorMenuItem()
+            ed_menu.append(self.sep1)
+            self.adt_mi = create_mi(self.actionDataType)
+            ed_menu.append(self.adt_mi)
+            self.art_mi = create_mi(self.actionRevertType)
+            ed_menu.append(self.art_mi)
 
-        edit_menu = create_mi(self.actionEditMenu)
-        edit_menu.set_submenu(ed_menu)
-        self.menubar.append(edit_menu)
+            edit_menu = create_mi(self.actionEditMenu)
+            edit_menu.set_submenu(ed_menu)
+            self.menubar.append(edit_menu)
 
-        # View menu
-        v_menu = gtk.Menu()
-        self.aren_mi = create_mi(self.actionRename)
-        v_menu.append(self.aren_mi)
-        self.agrp_mi = create_mi(self.actionChngGrp)
-        v_menu.append(self.agrp_mi)
-        self.sep3 = gtk.SeparatorMenuItem()
-        v_menu.append(self.sep3)
-        v_menu.append(self.actionHideField.create_menu_item())
-        v_menu.append(self.actionShowF.create_menu_item())
-        self.sep2 = gtk.SeparatorMenuItem()
-        v_menu.append(self.sep2)
+            # View menu
+            v_menu = gtk.Menu()
+            self.aren_mi = create_mi(self.actionRename)
+            v_menu.append(self.aren_mi)
+            self.agrp_mi = create_mi(self.actionChngGrp)
+            v_menu.append(self.agrp_mi)
+            self.sep3 = gtk.SeparatorMenuItem()
+            v_menu.append(self.sep3)
+            v_menu.append(create_mi(self.actionHideField))
+            v_menu.append(create_mi(self.actionShowF))
+            self.sep2 = gtk.SeparatorMenuItem()
+            v_menu.append(self.sep2)
 
-        digits_menu = gtk.Menu()
-        digits_menu.append(create_mi(self.actionDigit1))
-        digits_menu.append(create_mi(self.actionDigit2))
-        digits_menu.append(create_mi(self.actionDigit3))
-        digits_menu.append(create_mi(self.actionDigit4))
-        digits_menu.append(create_mi(self.actionDigit5))
-        digits_menu.append(create_mi(self.actionDigit6))
-        self.d_menu = create_mi(self.actionSetDigits)
-        self.d_menu.set_submenu(digits_menu)
-        v_menu.append(self.d_menu)
+            digits_menu = gtk.Menu()
+            digits_menu.append(create_mi(self.actionDigit1))
+            digits_menu.append(create_mi(self.actionDigit2))
+            digits_menu.append(create_mi(self.actionDigit3))
+            digits_menu.append(create_mi(self.actionDigit4))
+            digits_menu.append(create_mi(self.actionDigit5))
+            digits_menu.append(create_mi(self.actionDigit6))
+            self.d_menu = create_mi(self.actionSetDigits)
+            self.d_menu.set_submenu(digits_menu)
+            v_menu.append(self.d_menu)
 
-        v_menu.append(gtk.SeparatorMenuItem())
-        v_menu.append(self.actionSingleView.create_menu_item())
-        v_menu.append(self.actionDualView.create_menu_item())
-        v_menu.append(gtk.SeparatorMenuItem())
-        v_menu.append(self.actionTopBottom.create_menu_item())
-        v_menu.append(self.actionSideSide.create_menu_item())
-        v_menu.append(gtk.SeparatorMenuItem())
-        v_menu.append(self.actionHideCol.create_menu_item())
-        v_menu.append(self.actionSubHdrs.create_menu_item())
-        v_menu.append(gtk.SeparatorMenuItem())
-        v_menu.append(create_mi(self.actionSaveLayout))
+            v_menu.append(gtk.SeparatorMenuItem())
+            v_menu.append(create_mi(self.actionSingleView))
+            v_menu.append(create_mi(self.actionDualView))
+            v_menu.append(gtk.SeparatorMenuItem())
+            v_menu.append(create_mi(self.actionTopBottom))
+            v_menu.append(create_mi(self.actionSideSide))
+            v_menu.append(gtk.SeparatorMenuItem())
+            v_menu.append(create_mi(self.actionHideCol))
+            v_menu.append(create_mi(self.actionSubHdrs))
+            v_menu.append(gtk.SeparatorMenuItem())
+            v_menu.append(create_mi(self.actionSaveLayout))
 
-        view_menu = create_mi(self.actionViewMenu)
-        view_menu.set_submenu(v_menu)
-        self.menubar.append(view_menu)
+            view_menu = create_mi(self.actionViewMenu)
+            view_menu.set_submenu(v_menu)
+            self.menubar.append(view_menu)
 
-        # Add menu
-        menuAdd = gtk.Menu()
-        self.add_catalog_items(menuAdd)
-        menuAdd.append(gtk.SeparatorMenuItem())
-        menuAdd.append(create_mi(self.actionLoadCfg))
-        menuAdd.append(create_mi(self.actionImportXML))
+            # Add menu
+            menuAdd = gtk.Menu()
+            self.add_catalog_items(menuAdd)
+            menuAdd.append(gtk.SeparatorMenuItem())
+            menuAdd.append(create_mi(self.actionLoadCfg))
+            menuAdd.append(create_mi(self.actionImportXML))
 
-        add_menu = create_mi(self.actionAddMenu)
-        add_menu.set_submenu(menuAdd)
-        self.menubar.append(add_menu)
+            add_menu = create_mi(self.actionAddMenu)
+            add_menu.set_submenu(menuAdd)
+            self.menubar.append(add_menu)
 
-        # Utilities menu
-        menu_utils = gtk.Menu()
+            # Utilities menu
+            menu_utils = gtk.Menu()
 
-        menu_utils.append(self.actionChUnits.create_menu_item())
-        menu_utils.append(self.actionAutoRefresh.create_menu_item())
-        menu_utils.append(gtk.SeparatorMenuItem())
-        menu_utils.append(create_mi(self.actionLoadTools))
-        menu_utils.append(gtk.SeparatorMenuItem())
-        menu_utils.append(create_mi(self.actionSaveUser))
-        menu_utils.append(create_mi(self.actionDeleteUser))
+            menu_utils.append(create_mi(self.actionChUnits))
+            menu_utils.append(create_mi(self.actionAutoRefresh))
+            menu_utils.append(gtk.SeparatorMenuItem())
+            menu_utils.append(create_mi(self.actionLoadTools))
+            menu_utils.append(gtk.SeparatorMenuItem())
+            menu_utils.append(create_mi(self.actionSaveUser))
+            menu_utils.append(create_mi(self.actionDeleteUser))
 
-        menu_utils.append(gtk.SeparatorMenuItem())
+            menu_utils.append(gtk.SeparatorMenuItem())
 
-        menu_val = gtk.Menu()
-        # Global validation messages toggle
-        self.chk_val_all = gtk.CheckMenuItem(label=_('Show All Messages'))
-        self.chk_val_all.set_active(not self.pref.val_all_excluded())
-        self.chk_val_all.connect('toggled', self.action_toggle_val_all)
-        menu_val.append(self.chk_val_all)
-        menu_val.append(gtk.SeparatorMenuItem())
-        # Per-feature type validation toggle (updated dynamically)
-        self.chk_val_feat = gtk.CheckMenuItem(label=_('Show Messages For Current Type'))
-        self.chk_val_feat.set_active(True)
-        self.chk_val_feat.connect('toggled', self.action_toggle_val_feat)
-        menu_val.append(self.chk_val_feat)
+            menu_val = gtk.Menu()
+            # Global validation messages toggle
+            self.chk_val_all = gtk.CheckMenuItem(label=_('Show All Messages'))
+            self.chk_val_all.set_active(not self.pref.val_all_excluded())
+            self.chk_val_all.connect('toggled', self.action_toggle_val_all)
+            menu_val.append(self.chk_val_all)
+            menu_val.append(gtk.SeparatorMenuItem())
+            # Per-feature type validation toggle (updated dynamically)
+            self.chk_val_feat = gtk.CheckMenuItem(label=_('Show Messages For Current Type'))
+            self.chk_val_feat.set_active(True)
+            self.chk_val_feat.connect('toggled', self.action_toggle_val_feat)
+            menu_val.append(self.chk_val_feat)
 
-        u_menu = create_mi(self.actionValidationMenu)
-        u_menu.set_submenu(menu_val)
-        menu_utils.append(u_menu)
+            u_menu = create_mi(self.actionValidationMenu)
+            u_menu.set_submenu(menu_val)
+            menu_utils.append(u_menu)
 
-        menu_utils.append(gtk.SeparatorMenuItem())
-        menu_utils.append(create_mi(self.actionPreferences))
+            menu_utils.append(gtk.SeparatorMenuItem())
+            menu_utils.append(create_mi(self.actionPreferences))
 
-        u_menu = create_mi(self.actionUtilMenu)
-        u_menu.set_submenu(menu_utils)
-        self.menubar.append(u_menu)
+            u_menu = create_mi(self.actionUtilMenu)
+            u_menu.set_submenu(menu_utils)
+            self.menubar.append(u_menu)
 
-        # Help menu
-        menu_help = gtk.Menu()
-        menu_help.append(create_mi(self.actionYouTube, "youtube.png"))
-#        menu_help.append(create_mi(self.actionYouTrans, "youtube.png"))
-        menu_help.append(gtk.SeparatorMenuItem())
-        menu_help.append(create_mi(self.actionCNCHome, "linuxcncicon.png",))
-        menu_help.append(create_mi(self.actionForum, "linuxcncicon.png",))
-        menu_help.append(gtk.SeparatorMenuItem())
-        menu_help.append(create_mi(self.actionAbout))
+            # Help menu
+            menu_help = gtk.Menu()
+            menu_help.append(create_mi(self.actionYouTube, "youtube.png"))
+    #        menu_help.append(create_mi(self.actionYouTrans, "youtube.png"))
+            menu_help.append(gtk.SeparatorMenuItem())
+            menu_help.append(create_mi(self.actionCNCHome, "linuxcncicon.png",))
+            menu_help.append(create_mi(self.actionForum, "linuxcncicon.png",))
+            menu_help.append(gtk.SeparatorMenuItem())
+            menu_help.append(create_mi(self.actionAbout))
 
-        h_menu = create_mi(self.actionHelpMenu)
-        h_menu.set_submenu(menu_help)
-        self.menubar.append(h_menu)
+            h_menu = create_mi(self.actionHelpMenu)
+            h_menu.set_submenu(menu_help)
+            self.menubar.append(h_menu)
 
-        self.mnu_current_project = gtk.MenuItem(label = '')
-        self.menubar.append(self.mnu_current_project)
+            self.mnu_current_project = gtk.MenuItem(label = '')
+            self.menubar.append(self.mnu_current_project)
 
-        self.main_box.pack_start(self.menubar, False, False, 0)
+            self.main_box.pack_start(self.menubar, False, False, 0)
+            self._connect_action_accelerators_after_menu()
 
     def action_build(self, *arg) :
         self.autorefresh_call()
@@ -2988,23 +3099,75 @@ class NCam(gtk.VBox):
 #        webbrowser.open('https://www.youtube.com/channel/UCjOe4VxKL86HyVrshTmiUBQ')
         pass
 
-    def _on_realize(self, *arg):
-        """Connect to toplevel window destroy to clean up phantom popups."""
+    def _cancel_autorefresh_timer(self):
+        tid = getattr(self, 'timeout', None)
+        if tid is not None:
+            try:
+                GLib.source_remove(tid)
+            except (TypeError, AttributeError, ValueError):
+                pass
+            self.timeout = None
+
+    def _autorefresh_toggled(self, action):
+        if not action.get_active():
+            self._cancel_autorefresh_timer()
+        self.autorefresh_call()
+
+    def _prime_accel_for_window(self, w):
+        """Attach UIManager AccelGroup to GtkWindow (realize first). Do not connect_accelerator
+        here — create_menubar uses disconnect_accelerator + create_menu_item; then
+        _connect_action_accelerators_after_menu() restores keys."""
+        if w is None or not isinstance(w, gtk.Window):
+            return
+        if getattr(self, '_accel_group_on_toplevel', False):
+            return
+        try:
+            if not w.get_realized():
+                w.realize()
+            w.add_accel_group(self.accel_group)
+            self._accel_group_on_toplevel = True
+        except Exception:
+            pass
+
+    def _connect_action_accelerators_after_menu(self):
+        for act in self.action_group.list_actions():
+            try:
+                act.connect_accelerator()
+            except Exception:
+                pass
+
+    def _setup_toplevel_integration(self):
+        """Attach UIManager accel group to embedding GtkWindow; hook destroy for cleanup."""
         toplevel = self.get_toplevel()
-        if toplevel and toplevel != self:
+        if toplevel is None or toplevel == self:
+            return
+        if not isinstance(toplevel, gtk.Window):
+            return
+        self._prime_accel_for_window(toplevel)
+        if not getattr(self, '_toplevel_destroy_hooked', False):
             toplevel.connect('destroy', self._close_all_popups)
+            self._toplevel_destroy_hooked = True
+
+    def _on_realize(self, *arg):
+        """If hierarchy changes, ensure accel/destroy hooks (idempotent)."""
+        self._setup_toplevel_integration()
 
     def _close_all_popups(self, *arg):
         """Close all active GTK popup windows when LinuxCNC exits.
         Prevents phantom combo dropdowns and VKB dialogs from remaining on screen.
         """
+        self._ncam_shutting_down = True
+        self._cancel_autorefresh_timer()
         # Close any open combo popups on all CellRenderers in treeviews
         for tv in [self.treeview]:
             try:
                 tv.set_sensitive(False)
             except Exception:
                 pass
-        # Destroy all non-main toplevel windows (combo popups, VKB, dialogs)
+        # Standalone only: popups are ours; GladeVCP must not gtk.main_quit() or mass-destroy toplevels
+        # while the plug/socket is shutting down (GdkWindow destroyed / NULL Gtk warnings).
+        if not NCAM_STANDALONE:
+            return
         for w in gtk.Window.list_toplevels():
             try:
                 if w is not self.get_toplevel() and w.get_visible():
@@ -3015,8 +3178,21 @@ class NCam(gtk.VBox):
         gtk.main_quit()
 
     def on_destroy(self, *arg):
-        if self.pref.autosave :
-            self.action_saveCurrent()
+        self._ncam_shutting_down = True
+        self._cancel_autorefresh_timer()
+
+        def _safe_call(fn):
+            """Avoid tracebacks during LinuxCNC/gladevcp teardown (SIGINT, X disconnect, half-dead GTK)."""
+            try:
+                fn()
+            except KeyboardInterrupt:
+                pass
+            except Exception:
+                pass
+
+        _safe_call(self._save_autorefresh_preference)
+        if self.pref.autosave:
+            _safe_call(self.action_saveCurrent)
 
     def btn_cancel_add(self, *arg):
         self.addVBox.hide()
@@ -3228,12 +3404,15 @@ class NCam(gtk.VBox):
 
     def action_saveCurrent(self, *arg):
         fname = os.path.join(NCAM_DIR, CATALOGS_DIR, self.catalog_dir, PROJECTS_DIR, CURRENT_WORK)
-        if self.treestore.get_iter_first() is not None :
-            xml = self.treestore_to_xml()
-            etree.ElementTree(xml).write(fname, pretty_print = True)
-        else :
-            if os.path.isfile(fname) :
-                os.remove(fname)
+        try:
+            if self.treestore.get_iter_first() is not None :
+                xml = self.treestore_to_xml()
+                etree.ElementTree(xml).write(fname, pretty_print = True)
+            else :
+                if os.path.isfile(fname) :
+                    os.remove(fname)
+        except KeyboardInterrupt:
+            pass
 
     def pop_menu(self, tv, event):
         if event.button == 3:
@@ -3509,6 +3688,17 @@ class NCam(gtk.VBox):
         parser.set('layout', 'hide_value_column', str(self.actionHideCol.get_active()))
         parser.set('layout', 'dual_view', str(self.actionDualView.get_active()))
         parser.set('layout', 'side_by_side', str(self.actionSideSide.get_active()))
+        parser.set('layout', 'autorefresh', str(self.actionAutoRefresh.get_active()))
+        with open(cfg_file, 'w') as configfile:
+            parser.write(configfile)
+
+    def _save_autorefresh_preference(self):
+        cfg_file = os.path.join(NCAM_DIR, CATALOGS_DIR, CONFIG_FILE)
+        parser = ConfigParser.ConfigParser()
+        parser.read(cfg_file)
+        if not parser.has_section('layout'):
+            parser.add_section('layout')
+        parser.set('layout', 'autorefresh', str(self.actionAutoRefresh.get_active()))
         with open(cfg_file, 'w') as configfile:
             parser.write(configfile)
 
@@ -3526,6 +3716,7 @@ class NCam(gtk.VBox):
         self.actionSideSide.set_active(self.pref.side_by_side)
         self.actionSingleView.set_active(not self.pref.use_dual_views)
         self.actionDualView.set_active(self.pref.use_dual_views)
+        self.actionAutoRefresh.set_active(self.pref.autorefresh)
 
         self.actionCurrent.set_visible(not self.pref.autosave)
         self.name_cell.set_property('ellipsize', self.pref.name_ellipsis)
@@ -4333,6 +4524,13 @@ class NCam(gtk.VBox):
         self.import_xml(xml)
 
     def autorefresh_call(self, *arg) :
+        if getattr(self, '_ncam_shutting_down', False):
+            return False
+        try:
+            if not self.get_realized():
+                return False
+        except Exception:
+            return False
         fname = os.path.join(NGC_DIR, GENERATED_FILE)
         with open(fname, "w") as f:
             f.write(self.to_gcode())
@@ -4343,7 +4541,7 @@ class NCam(gtk.VBox):
             stat.poll()
             if stat.interp_state == linuxcnc.INTERP_IDLE :
                 try :
-                    Tkinter.Tk().tk.call("send", "axis", ("remote", "open_file_name", fname))
+                    _tk_axis_remote_open(fname)
                 except Tkinter.TclError as detail:
                     linuxCNC.reset_interpreter()
                     time.sleep(gmoccapy_time_out)
@@ -4360,9 +4558,15 @@ class NCam(gtk.VBox):
                 mess_dlg(_('LinuxCNC not running\n\nStart LinuxCNC and\nactivate Auto-refresh menu item'))
 
         if self.focused_widget is not None :
-            self.focused_widget.grab_focus()
+            try:
+                self.focused_widget.grab_focus()
+            except Exception:
+                pass
         else :
-            self.treeview.grab_focus()
+            try:
+                self.treeview.grab_focus()
+            except Exception:
+                pass
 
         return False
 
@@ -4427,8 +4631,9 @@ class NCam(gtk.VBox):
 
     def update_do_btns(self, refresh):
         self.set_do_buttons_state()
+        self._cancel_autorefresh_timer()
         if self.actionAutoRefresh.get_active() and refresh:
-            self.timeout = gobject.timeout_add(self.pref.timeout_value,
+            self.timeout = GLib.timeout_add(self.pref.timeout_value,
                     self.autorefresh_call)
 
     def action_undo(self, *arg) :
@@ -4893,8 +5098,8 @@ class NCam(gtk.VBox):
                 if "new-selected" in p and p["new-selected"] == "True":
                     self.treeview.set_cursor(mf_pa)
                     self.path_to_new_selected = mf_pa
-            except :
-                # not in treeview
+            except Exception:
+                # not in treeview (do not use bare except: must not swallow KeyboardInterrupt)
                 pass
 
         self.path_to_new_selected = None
@@ -4908,16 +5113,16 @@ class NCam(gtk.VBox):
         model, pathlist = self.selection.get_selected_rows()
 
         def treestore_get_expand(model, path, itr) :
-            p = model.get(itr, 0)[0]
-            p.attr["path"] = model.get_string_from_iter(itr)
-            try :
+            try:
+                p = model.get(itr, 0)[0]
+                p.attr["path"] = model.get_string_from_iter(itr)
                 mf_itr = self.master_filter.convert_child_iter_to_iter(itr)
                 mf_pa = self.master_filter.get_path(mf_itr)
                 p.attr["old-selected"] = mf_pa in pathlist
                 p.attr["new-selected"] = False
                 p.attr["expanded"] = self.treeview.row_expanded(mf_pa)
-            except :
-                # not in treeview
+            except Exception:
+                # not in filter/treeview (do not use bare except: must not swallow KeyboardInterrupt)
                 pass
 
         self.treestore.foreach(treestore_get_expand)
@@ -5328,6 +5533,7 @@ To prepare your inifile to use NativeCAM embedded,
 """)
 
 if __name__ == "__main__":
+    NCAM_STANDALONE = True
     # process args
     args = sys.argv[1:]
     if "-h" in args or "--help" in args:
@@ -5365,10 +5571,9 @@ if __name__ == "__main__":
         verify_ini(os.path.abspath(ini), catalog, in_tab)
 
     window = gtk.Dialog(title=APP_TITLE, modal=True)
-    ncam = NCam()
+    ncam = NCam(accel_toplevel=window)
     window.vbox.add(ncam)
     ncam.actionCurrent.set_visible(True)
-    window.add_accel_group(ncam.accel_group)
     window.connect("destroy", gtk.main_quit)
     window.set_default_size(400, 800)
     exit(window.run())
