@@ -1,3 +1,11 @@
+nativecam (2.0b-3) UNRELEASED; urgency=medium
+
+  * Honor Workpiece offsets for center-based milling features:
+    circle, circle-2, circle-k, ellipse, polygon, slot-arc, thread-milling.
+  * Fix GTK3 key press event constant compatibility for current Gdk bindings.
+
+ -- CNC Proton <info@cnc-proton.com>  Mon, 20 Apr 2026 12:00:00 +0300
+
 nativecam (2.0b-2) UNRELEASED; urgency=medium
 
   * Fix Python 3 bytes/str issue in verify_ini function
