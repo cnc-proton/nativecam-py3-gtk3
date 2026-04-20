@@ -344,9 +344,11 @@ def translate(fstring):
 
 def mess_dlg(mess, title = "NativeCAM"):
     dlg = gtk.MessageDialog(parent = None,
-        flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
-        type = gtk.MessageType.WARNING,
-        buttons = gtk.ButtonsType.OK, message_format = '%s' % mess)
+        modal = True,
+        destroy_with_parent = True,
+        message_type = gtk.MessageType.WARNING,
+        buttons = gtk.ButtonsType.OK,
+        text = '%s' % mess)
     dlg.set_title(title)
     dlg.set_keep_above(True)
     dlg.run()
@@ -5180,9 +5182,11 @@ def verify_ini(fname, ctlog, in_tab) :
         txt1 = ''
         txt2 = txt.split('\n')
         for line in txt2 :
+            if line.strip() == '=':
+                continue
             txt1 += line.lstrip(' \t') + '\n'
 
-        parser = ConfigParser.RawConfigParser()
+        parser = ConfigParser.RawConfigParser(strict=False)
         try :
             parser.read_string(txt1)
 
@@ -5215,7 +5219,7 @@ def verify_ini(fname, ctlog, in_tab) :
                     newstr = '%sGLADEVCP = -U --catalog=%s %s\n' % (req, ctlog, path2ui)
                     try :
                         oldstr = 'GLADEVCP = %s' % parser.get('DISPLAY', 'gladevcp')
-                        txt = re.sub(r"%s" % oldstr, newstr, txt)
+                        txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                     except :
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
@@ -5230,21 +5234,21 @@ def verify_ini(fname, ctlog, in_tab) :
                     newstr = '%sEMBED_TAB_LOCATION = box_right\n' % req
                     try :
                         oldstr = 'EMBED_TAB_LOCATION = %s' % parser.get('DISPLAY', 'embed_tab_location')
-                        txt = re.sub(r"%s" % oldstr, newstr, txt)
+                        txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                     except :
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                     newstr = '%sEMBED_TAB_NAME = right_side_panel\n' % req
                     try :
                         oldstr = 'EMBED_TAB_NAME = %s' % parser.get('DISPLAY', 'embed_tab_name')
-                        txt = re.sub(r"%s" % oldstr, newstr, txt)
+                        txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                     except :
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                     newstr = '%sEMBED_TAB_COMMAND = gladevcp -x {XID} -U --catalog=%s %s\n' % (req, ctlog, path2ui)
                     try :
                         oldstr = 'EMBED_TAB_COMMAND = %s' % parser.get('DISPLAY', 'embed_tab_command')
-                        txt = re.sub(r"%s" % oldstr, newstr, txt)
+                        txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                     except :
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
@@ -5252,35 +5256,35 @@ def verify_ini(fname, ctlog, in_tab) :
                 newstr = '%sEMBED_TAB_COMMAND = gladevcp -x {XID} -U --catalog=%s %s\n' % (req, ctlog, path2ui)
                 try :
                     oldstr = 'EMBED_TAB_COMMAND = %s' % parser.get('DISPLAY', 'embed_tab_command')
-                    txt = re.sub(r"%s" % oldstr, newstr, txt)
+                    txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                 except :
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                 newstr = '%sEMBED_TAB_LOCATION = vcp_box\n' % req
                 try :
                     oldstr = 'EMBED_TAB_LOCATION = %s' % parser.get('DISPLAY', 'embed_tab_location')
-                    txt = re.sub(r"%s" % oldstr, newstr, txt)
+                    txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                 except :
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                 newstr = '%sEMBED_TAB_NAME = NativeCAM\n' % req
                 try :
                     oldstr = 'EMBED_TAB_NAME = %s' % parser.get('DISPLAY', 'embed_tab_name')
-                    txt = re.sub(r"%s" % oldstr, newstr, txt)
+                    txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                 except :
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             newstr = '%sPROGRAM_PREFIX = ncam/scripts/\n' % req
             try :
                 oldstr = 'PROGRAM_PREFIX = ' + parser.get('DISPLAY', 'program_prefix')
-                txt = re.sub(r"%s" % oldstr, newstr, txt)
+                txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
             except :
                 txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             newstr = '%sNCAM_DIR = ncam\n' % req
             try :
                 oldstr = 'NCAM_DIR = ' + parser.get('DISPLAY', 'ncam_dir')
-                txt = re.sub(r"%s" % oldstr, newstr, txt)
+                txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
             except :
                 txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
@@ -5289,11 +5293,9 @@ def verify_ini(fname, ctlog, in_tab) :
                     (req, ctlog, old_sub_path)
                 try :
                     oldstr = 'SUBROUTINE_PATH = ' + parser.get('RS274NGC', 'subroutine_path')
-                    txt = re.sub(r"%s" % oldstr, newstr, txt)
+                    txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
                 except :
                     txt = re.sub(r"\[RS274NGC\]", "[RS274NGC]\n" + newstr, txt)
-
-            open(fname, 'w').write(txt)
 
             with open(fname, 'w') as b :
                 b.write(txt)
