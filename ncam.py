@@ -913,7 +913,8 @@ class VKB(object):
                 self.entry.set_markup('<b>%s%s</b>' % (lbl, data))
 
     def key_press_event(self, win, event):
-        if event.type == gdk.KEY_PRESS:
+        key_press_const = getattr(gdk, "KEY_PRESS", getattr(getattr(gdk, "EventType", object), "KEY_PRESS", None))
+        if key_press_const is not None and event.type == key_press_const:
             k_name = gdk.keyval_name(event.keyval)
 #            print(k_name)
             if ((k_name >= 'KP_0' and k_name <= 'KP_9') or \
