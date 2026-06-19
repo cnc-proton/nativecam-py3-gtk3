@@ -4,17 +4,6 @@
 # --  NO USER SETTINGS IN THIS FILE -- EDIT PREFERENCES INSTEAD  ---
 # ------------------------------------------------------------------
 
-APP_COPYRIGHT = '''Copyright © 2017 Fernand Veilleux : fernveilleux@gmail.com
-Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru
-Copyright © 2026 CNC Proton (Python 3 / GTK3 Port)'''
-APP_AUTHORS = ['Fernand Veilleux (original author)',
-               'Nick Drobchenko (initiator)',
-               'Meison Kim', 'Alexander Wigen', 'Konstantin Navrockiy', 'Mit Zot',
-               'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen',
-               'CNC Proton (Python 3 / GTK3 port, Side Drill)']
-
-APP_VERSION = "2.0b"
-
 import sys
 import gi
 gi.require_version('Gtk', '3.0')
@@ -26,7 +15,8 @@ from gi.repository import GLib
 from lxml import etree
 from gi.repository import GObject as gobject
 import configparser as ConfigParser
-import re, os
+import re
+import os
 import getopt
 import shutil
 import hashlib
@@ -60,6 +50,17 @@ warnings.filterwarnings(
     message=r'.*Gtk\..* is deprecated')
 
 SYS_DIR = os.path.dirname(os.path.realpath(__file__))
+
+APP_COPYRIGHT = '''Copyright © 2017 Fernand Veilleux : fernveilleux@gmail.com
+Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru
+Copyright © 2026 CNC Proton (Python 3 / GTK3 Port)'''
+APP_AUTHORS = ['Fernand Veilleux (original author)',
+               'Nick Drobchenko (initiator)',
+               'Meison Kim', 'Alexander Wigen', 'Konstantin Navrockiy', 'Mit Zot',
+               'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen',
+               'CNC Proton (Python 3 / GTK3 port, Side Drill)']
+
+APP_VERSION = "2.0b"
 
 # GTK3 + deprecated GtkAction: create_menu_item() triggers harmless Gtk-CRITICAL in C
 # (gtk_accel_label_set_accel_closure). Filter that line only; other CRITICALs still log.
@@ -131,7 +132,7 @@ try :
     lang = gettext.translation(APP_NAME, nativecam_locale, fallback = True)
     lang.install()
     _ = lang.gettext
-except :
+except Exception:
     gettext.install(APP_NAME, None)
 
 APP_TITLE = _("NativeCAM for LinuxCNC")
@@ -304,16 +305,16 @@ def get_int(s10) :
         s10 = s10[:index]
     try :
         return int(s10)
-    except :
+    except Exception:
         return 0
 
 def get_float(s10) :
     try :
         return float(s10)
-    except :
+    except Exception:
         try :
             return locale.atof(s10)
-        except :
+        except Exception:
             return 0.0
 
 def get_string(float_val, digits, localized = True):
@@ -416,8 +417,8 @@ def mess_with_buttons(mess, buttons, title = ""):
           )
     mwb.set_title(title)
     finbox = mwb.get_content_area()
-    l = gtk.Label(label=mess)
-    finbox.pack_start(l, True, True, 0)
+    msg_lbl = gtk.Label(label=mess)
+    finbox.pack_start(msg_lbl, True, True, 0)
     mwb.set_keep_above(True)
     mwb.show_all()
     response = mwb.run()
@@ -942,7 +943,7 @@ class VKB(object):
                 self.entry.set_markup('<b>%s%s</b>' % (lbl, data))
 
         elif data in ['*', '/', '+'] :
-            if lbl != '0' and not lbl[-1] in ['+', '-', '*', '/', '('] :
+            if lbl != '0' and lbl[-1] not in ['+', '-', '*', '/', '('] :
                 self.entry.set_markup('<b>%s%s</b>' % (lbl, data))
 
         elif data == '()' :
@@ -1023,7 +1024,8 @@ class VKB(object):
         self.dlg.response(gtk.ResponseType.CANCEL)
 
     def focus_out(self, widget, event):
-        if getattr(self, 'is_closing', False): return
+        if getattr(self, 'is_closing', False):
+            return
         self.is_closing = True
         if vkb_cancel_on_out:
             self.dlg.response(gtk.ResponseType.CANCEL)
@@ -1045,12 +1047,12 @@ class VKB(object):
             try:
                 i = str(locale.atof(i))
                 qualified = qualified + str(float(i))
-            except:
+            except Exception:
                 qualified = qualified + i
 
         try :
             return True, eval(qualified)
-        except :
+        except Exception:
             return False, 0.0
 
     def __exit__(self, type, value, traceback):
@@ -1145,7 +1147,7 @@ class CellRendererMx(gtk.CellRendererText):
                  self.editdata_type, self.convertible_units) as vkb :
 
             status, tree_x, tree_y = self.tv.get_bin_window().get_origin()
-            tree_w, tree_h = self.tv.get_allocated_width(), self.tv.get_allocated_height()
+            tree_w, _tree_h = self.tv.get_allocated_width(), self.tv.get_allocated_height()
 
             vkb.dlg.set_size_request(vkb_width, vkb_height)
             vkb.dlg.resize(vkb_width, vkb_height)
@@ -1288,7 +1290,8 @@ class CellRendererMx(gtk.CellRendererText):
             self.list_window.response(gtk.ResponseType.OK)
 
     def list_out(self, widget, event):
-        if getattr(self, 'lst_is_closing', False): return
+        if getattr(self, 'lst_is_closing', False):
+            return
         self.lst_is_closing = True
         self.list_window.response(gtk.ResponseType.CANCEL)
 
@@ -1472,7 +1475,8 @@ class CellRendererMx(gtk.CellRendererText):
              gtk.CellRendererText.do_render(self, cr, widget, background_area, cell_area, flags)
 
     def string_edit_focus_out(self, widget, event):
-        if getattr(self, 'str_is_closing', False): return
+        if getattr(self, 'str_is_closing', False):
+            return
         self.str_is_closing = True
         self.stringedit_window.response(gtk.ResponseType.OK)
 
@@ -1482,13 +1486,14 @@ class CellRendererMx(gtk.CellRendererText):
             self.stringedit_window.response(gtk.ResponseType.OK)
 
     def text_edit_focus_out(self, widget, event, path):
-        if getattr(self, 'txt_is_closing', False): return
+        if getattr(self, 'txt_is_closing', False):
+            return
         self.txt_is_closing = True
         self.textedit_window.response(gtk.ResponseType.OK)
 
     def text_edit_keyhandler(self, widget, event):
         keyname = gdk.keyval_name(event.keyval)
-        if gdk.keyval_name(event.keyval) in ['Return', 'KP_Enter'] :
+        if keyname in ['Return', 'KP_Enter'] :
             if event.state & (gdk.ModifierType.SHIFT_MASK | gdk.ModifierType.CONTROL_MASK) :
                 pass
             else :
@@ -1805,14 +1810,14 @@ class Feature(object):
         self.attr["id"] = ftype + '_000'
 
         # get gcode parameters
-        for l in ["DEFINITIONS", "BEFORE", "CALL", "AFTER", "VALIDATION", "INIT"] :
-            if l in conf and "content" in conf[l] :
-                self.attr[l.lower()] = re.sub(r"(?m)\r?\n\r?\.", "\n",
-                                              conf[l]["content"])
+        for gcode_key in ["DEFINITIONS", "BEFORE", "CALL", "AFTER", "VALIDATION", "INIT"] :
+            if gcode_key in conf and "content" in conf[gcode_key] :
+                self.attr[gcode_key.lower()] = re.sub(r"(?m)\r?\n\r?\.", "\n",
+                                              conf[gcode_key]["content"])
             else :
-                self.attr[l.lower()] = ""
+                self.attr[gcode_key.lower()] = ""
 
-        parent = self
+        parent = self  # noqa: F841 — name used by feature INIT exec()
         exec(self.attr['init'])
 
     def from_xml(self, xml) :
@@ -1837,8 +1842,8 @@ class Feature(object):
         num = 1
         if xml is not None :
             # get smallest free name
-            l = xml.findall(".//feature[@type='%s']" % self.attr["type"])
-            num = max([get_int(i.get("id")[-3: ]) for i in l] + [0]) + 1
+            features = xml.findall(".//feature[@type='%s']" % self.attr["type"])
+            num = max([get_int(i.get("id")[-3: ]) for i in features] + [0]) + 1
         self.attr["id"] = self.attr["type"] + "_%03d" % num
 
     def get_definitions(self) :
@@ -1891,7 +1896,7 @@ class Feature(object):
         def eval_callback(m) :
             try :
                 return str(eval(m.group(2), globals(), {"self":self}))
-            except :
+            except Exception:
                 return ''
 
         def exec_callback(m) :
@@ -1900,13 +1905,13 @@ class Feature(object):
             # strip starting spaces
             s = s.replace("\t", " ")
             i = 1e10
-            for l in s.split("\n") :
-                if l.strip() != "" :
-                    i = min(i, len(l) - len(l.lstrip()))
+            for line in s.split("\n") :
+                if line.strip() != "" :
+                    i = min(i, len(line) - len(line.lstrip()))
             if i < 1e10 :
                 res = ""
-                for l in s.split("\n") :
-                    res += l[i:] + "\n"
+                for line in s.split("\n") :
+                    res += line[i:] + "\n"
                 s = res
 
             old_stdout = sys.stdout
@@ -1923,13 +1928,13 @@ class Feature(object):
             # strip starting spaces
             s = s.replace("\t", "  ")
             i = 1e10
-            for l in s.split("\n") :
-                if l.strip() != "" :
-                    i = min(i, len(l) - len(l.lstrip()))
+            for line in s.split("\n") :
+                if line.strip() != "" :
+                    i = min(i, len(line) - len(line.lstrip()))
             if i < 1e10 :
                 res = ""
-                for l in s.split("\n") :
-                    res += l[i:] + "\n"
+                for line in s.split("\n") :
+                    res += line[i:] + "\n"
                 s = res
             try :
                 output = subprocess.check_output([s], shell = True, stderr = subprocess.STDOUT)
@@ -2035,7 +2040,7 @@ class Feature(object):
     def check_hash(self, s, default = 0):
         try :
             return (0 + eval(s.strip('[]')))
-        except :
+        except Exception:
             print(_('%(feature_name)s : can not evaluate %(value)s') % \
                   {'feature_name':self.get_name(), 'value':s})
             return default
@@ -2070,13 +2075,13 @@ class Preferences(object):
         def read_float(cf, section, key, default):
             try :
                 return cf.getfloat(section, key)
-            except :
+            except Exception:
                 return default
 
         def read_boolean(cf, section, key, default):
             try :
                 return cf.getboolean(section, key)
-            except :
+            except Exception:
                 return default
 
         def read_sbool(cf, section, key, default):
@@ -2092,7 +2097,7 @@ class Preferences(object):
                     return default
                 else :
                     return val
-            except :
+            except Exception:
                 return default
 
         def read_int(cf, section, key, default):
@@ -3074,8 +3079,6 @@ class NCam(gtk.VBox):
         old_menu_icon_size = menu_icon_size
         old_add_menu_icon_size = add_menu_icon_size
         old_add_dlg_icon_size = add_dlg_icon_size
-        old_view = self.actionDualView.get_active()
-
         if self.pref.edit(self) :
             if old_quick_access_icon_size != quick_access_icon_size :
                 self.create_nc_toolbar()
@@ -3332,7 +3335,7 @@ class NCam(gtk.VBox):
 
                     elif p.tag.lower() == "separator":
                         grp_menu.append(gtk.SeparatorMenuItem())
-                except:
+                except Exception:
                     pass
 
         if self.catalog.tag != 'ncam_ui' :
@@ -3561,7 +3564,7 @@ class NCam(gtk.VBox):
                             MENU_LISTING[actionname] = [name, tooltip, src, icon]
                     if p.tag.lower() == "menu" :
                         add_actions(p)
-                except :
+                except Exception:
                     return
 
         def add_toolbar_def(path):
@@ -3573,7 +3576,7 @@ class NCam(gtk.VBox):
                         TB_CATALOG[toolbar_rank] = "separator"
                     elif p.tag.lower() == 'toolitem':
                         TB_CATALOG[toolbar_rank] = MENU_LISTING[p.get("action")]
-                except :
+                except Exception:
                     return
                 toolbar_rank += 1
 
@@ -4359,7 +4362,7 @@ class NCam(gtk.VBox):
                 if not filename.lower().endswith(".ngc") :
                     filename += ".ngc"
                 with open(filename, "w") as f:
-                    f.write(self.to_gcode())
+                    f.write(gcode)
                 f.close()
         finally :
             filechooserdialog.destroy()
@@ -4544,10 +4547,10 @@ class NCam(gtk.VBox):
                 else :
                     xml.append(x)
 
-                l = x.findall(".//feature")
+                feature_nodes = x.findall(".//feature")
                 if x.tag == "feature" :
-                    l = [x] + l
-                for xf in l :
+                    feature_nodes = [x] + feature_nodes
+                for xf in feature_nodes :
                     f = Feature(xml = xf)
                     f.get_id(xml)
                     if 'short_id' in f.attr :
@@ -4598,7 +4601,7 @@ class NCam(gtk.VBox):
             if stat.interp_state == linuxcnc.INTERP_IDLE :
                 try :
                     _tk_axis_remote_open(fname)
-                except Tkinter.TclError as detail:
+                except Tkinter.TclError:
                     linuxCNC.reset_interpreter()
                     time.sleep(gmoccapy_time_out)
                     linuxCNC.mode(linuxcnc.MODE_AUTO)
@@ -4608,7 +4611,7 @@ class NCam(gtk.VBox):
                         linuxCNC.program_open(fname)
                     else:
                         mess_dlg(_('LinuxCNC could not change to AUTO mode. Generated NC file was not loaded.'))
-        except Exception as e:
+        except Exception:
             self.actionAutoRefresh.set_active(False)
             if self.show_not_connected :
                 mess_dlg(_('LinuxCNC not running\n\nStart LinuxCNC and\nactivate Auto-refresh menu item'))
@@ -4739,7 +4742,7 @@ class NCam(gtk.VBox):
         try :
             ver = subprocess.check_output(["dpkg-query", "--show", "--showformat=${Version}", "nativecam"])
             version_str = ver.decode('utf-8').strip()
-        except :
+        except Exception:
             version_str = APP_VERSION
 
         vbox_title = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=2)
@@ -4759,9 +4762,9 @@ class NCam(gtk.VBox):
         lbl_a.set_halign(gtk.Align.START)
         vbox.pack_start(lbl_a, False, False, 0)
         for author in APP_AUTHORS :
-            l = gtk.Label(label='  ' + author)
-            l.set_halign(gtk.Align.START)
-            vbox.pack_start(l, False, False, 0)
+            author_lbl = gtk.Label(label='  ' + author)
+            author_lbl.set_halign(gtk.Align.START)
+            vbox.pack_start(author_lbl, False, False, 0)
         vbox.pack_start(gtk.Separator(), False, False, 4)
 
         lbl_copy = gtk.Label(label=APP_COPYRIGHT)
@@ -4773,7 +4776,8 @@ class NCam(gtk.VBox):
         hbox_qr = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=16)
         qr_generated = False
         try :
-            import qrcode, tempfile
+            import qrcode
+            import tempfile
             qr = qrcode.QRCode(version=2, box_size=4, border=2)
             qr.add_data(HOME_PAGE)
             qr.make(fit=True)
@@ -4822,7 +4826,7 @@ class NCam(gtk.VBox):
             if response == gtk.ResponseType.HELP :
                 try :
                     data = open('/usr/share/doc/nativecam/copyright', 'r').read()
-                except :
+                except Exception:
                     data = APP_LICENCE
                 lic = gtk.MessageDialog(transient_for=dlg, modal=True,
                     message_type=gtk.MessageType.INFO,
@@ -5155,7 +5159,7 @@ class NCam(gtk.VBox):
                     self.treeview.set_cursor(mf_pa)
                     self.path_to_new_selected = mf_pa
             except Exception:
-                # not in treeview (do not use bare except: must not swallow KeyboardInterrupt)
+                # not in treeview (do not use bare except Exception: must not swallow KeyboardInterrupt)
                 pass
 
         self.path_to_new_selected = None
@@ -5178,7 +5182,7 @@ class NCam(gtk.VBox):
                 p.attr["new-selected"] = False
                 p.attr["expanded"] = self.treeview.row_expanded(mf_pa)
             except Exception:
-                # not in filter/treeview (do not use bare except: must not swallow KeyboardInterrupt)
+                # not in filter/treeview (do not use bare except Exception: must not swallow KeyboardInterrupt)
                 pass
 
         self.treestore.foreach(treestore_get_expand)
@@ -5458,14 +5462,14 @@ def verify_ini(fname, ctlog, in_tab) :
 
             try :
                 old_sub_path = ':' + parser.get('RS274NGC', 'SUBROUTINE_PATH')
-            except :
+            except Exception:
                 old_sub_path = ''
 
             try :
                 c = parser.get('DISPLAY', 'LATHE')
                 if c.lower() in ['1', 'true'] :
                     ctlog = 'lathe'
-            except :
+            except Exception:
                 pass
 
             txt = re.sub(r"%s" % req, '', txt)
@@ -5481,7 +5485,7 @@ def verify_ini(fname, ctlog, in_tab) :
                     try :
                         oldstr = 'GLADEVCP = %s' % parser.get('DISPLAY', 'gladevcp')
                         txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                    except :
+                    except Exception:
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             elif (dp == 'gmoccapy') :
@@ -5496,21 +5500,21 @@ def verify_ini(fname, ctlog, in_tab) :
                     try :
                         oldstr = 'EMBED_TAB_LOCATION = %s' % parser.get('DISPLAY', 'embed_tab_location')
                         txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                    except :
+                    except Exception:
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                     newstr = '%sEMBED_TAB_NAME = right_side_panel\n' % req
                     try :
                         oldstr = 'EMBED_TAB_NAME = %s' % parser.get('DISPLAY', 'embed_tab_name')
                         txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                    except :
+                    except Exception:
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                     newstr = '%sEMBED_TAB_COMMAND = gladevcp -x {XID} -U --catalog=%s %s\n' % (req, ctlog, path2ui)
                     try :
                         oldstr = 'EMBED_TAB_COMMAND = %s' % parser.get('DISPLAY', 'embed_tab_command')
                         txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                    except :
+                    except Exception:
                         txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             else :  # gscreen
@@ -5518,44 +5522,44 @@ def verify_ini(fname, ctlog, in_tab) :
                 try :
                     oldstr = 'EMBED_TAB_COMMAND = %s' % parser.get('DISPLAY', 'embed_tab_command')
                     txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                except :
+                except Exception:
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                 newstr = '%sEMBED_TAB_LOCATION = vcp_box\n' % req
                 try :
                     oldstr = 'EMBED_TAB_LOCATION = %s' % parser.get('DISPLAY', 'embed_tab_location')
                     txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                except :
+                except Exception:
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
                 newstr = '%sEMBED_TAB_NAME = NativeCAM\n' % req
                 try :
                     oldstr = 'EMBED_TAB_NAME = %s' % parser.get('DISPLAY', 'embed_tab_name')
                     txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                except :
+                except Exception:
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             newstr = '%sPROGRAM_PREFIX = ncam/scripts/\n' % req
             try :
                 oldstr = 'PROGRAM_PREFIX = ' + parser.get('DISPLAY', 'program_prefix')
                 txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-            except :
+            except Exception:
                 txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
             newstr = '%sNCAM_DIR = ncam\n' % req
             try :
                 oldstr = 'NCAM_DIR = ' + parser.get('DISPLAY', 'ncam_dir')
                 txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-            except :
+            except Exception:
                 txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
-            if not 'ncam/my-stuff:ncam/lib/' in old_sub_path :
+            if 'ncam/my-stuff:ncam/lib/' not in old_sub_path :
                 newstr = '%sSUBROUTINE_PATH = ncam/my-stuff:ncam/lib/%s:ncam/lib/utilities%s\n' % \
                     (req, ctlog, old_sub_path)
                 try :
                     oldstr = 'SUBROUTINE_PATH = ' + parser.get('RS274NGC', 'subroutine_path')
                     txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
-                except :
+                except Exception:
                     txt = re.sub(r"\[RS274NGC\]", "[RS274NGC]\n" + newstr, txt)
 
             with open(fname, 'w') as b :
@@ -5619,7 +5623,7 @@ if __name__ == "__main__":
             catalog = optlist["--catalog"]
         else :
             catalog = DEFAULT_CATALOG
-        if not catalog in VALID_CATALOGS :
+        if catalog not in VALID_CATALOGS :
             usage()
             sys.exit(3)
 
