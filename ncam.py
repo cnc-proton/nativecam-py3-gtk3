@@ -29,6 +29,7 @@ import time
 import locale
 import platform
 import pref_edit
+import lathe_polyline
 import tkinter as Tkinter
 import math
 import contextlib
@@ -2367,6 +2368,10 @@ class Preferences(object):
             self.default += ("#<_show_bottom_cut>         = " + self.ngc_show_bottom_cut + "\n\n")
 
             self.default += ("#<_spindle_all_time>        = " + self.spindle_all_time + "\n\n")
+
+        if self.cat_name == 'lathe' :
+            self.default += lathe_polyline.bootstrap_defaults(
+                self.ngc_off_rot_coord_system)
 
         if self.cat_name in ['mill', 'lathe'] :
             self.default += ("#<_spindle_speed_up_delay>  = " + self.ngc_spindle_speedup_time + "\n\n")

@@ -1,0 +1,11 @@
+o<lathe_approach> sub
+(CNC Proton — rapid to first profile point before cutting)
+(#1 table pointer)
+
+	#<base> = [#1 + 1]
+	#<z0>   = [#[#<base>]]
+	#<xr0>  = [#[#<base> + 1]]
+
+	G0 X[#<xr0> * #<_diameter_mode>] Z#<z0>
+
+o<lathe_approach> endsub
