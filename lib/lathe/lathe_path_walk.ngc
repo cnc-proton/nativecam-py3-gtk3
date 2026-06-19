@@ -14,7 +14,7 @@ o<lathe_path_walk> sub
 	o<lpw_loop> while [#<idx> LT #<nrec>]
 		#<idx> = [#<idx> + 1]
 		o<lathe_xz_move> CALL [#[#<cursor>]] [#[#<cursor> + 1]] [#[#<cursor> + 2]] \
-			[#[#<cursor> + 3] - #<_cut_current_x>] [#[#<cursor> + 4] - #<_cut_current_y>] [0] [0] [0]
+			[#[#<cursor> + 3] - #<_cut_current_x>] [#[#<cursor> + 4] - #<_cut_current_y>] [0] [#[#<cursor> + 5]] [#[#<cursor> + 6]]
 
 		o<lpw_early> if [#3 EQ 1]
 			o<lpw_hit> if [#<_depth_reached> EQ #<idx>]

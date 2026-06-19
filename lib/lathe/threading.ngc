@@ -10,6 +10,7 @@ o<threading> sub
 	#<finish_passes> = #11
 	#<taper_angle>   = [90 - #12]
 	#<helix_count>   = #13
+	#<cycle>         = #14
 
 	o91 if [[#<_metric> EQ 1] AND [#3 EQ 0]] (metric machine units and inch threads)
 		#<dia>    = [25.4 * #4]
@@ -93,7 +94,33 @@ o<threading> sub
 
 	o110 while [#<pass> LE #<helix_count>]
 		G0 Z[#<begin_z> + #<z_step> * [#<pass> - 0.5] * 2]
-		G76 P[#<pitch> * #<helix_count>] Z#<end_z> I-#<peak> J#<idepth> R#<degress> K#<depth> Q30 H#<finish_passes> E#<t_len> L#<taper>
+		o<thr_g33> if [#<cycle> EQ 33]
+			#<depth_pass> = 1
+			#<depth_steps> = FUP[#<depth> / #<idepth>]
+			o<thr_g33p> while [#<depth_pass> LE #<depth_steps>]
+				o<thr_ext> if [#<peak> GT 0.0]
+					#<x_now> = [#<dia> + #<peak> - #<idepth> * #<depth_pass>]
+				o<thr_ext> else
+					#<x_now> = [#<dia> - #<depth> + #<idepth> * #<depth_pass>]
+				o<thr_ext> endif
+				G0 X#<x_now>
+				G33 Z#<end_z> X#<x_now> K#<pitch>
+				#<depth_pass> = [#<depth_pass> + 1]
+			o<thr_g33p> endwhile
+			o<thr_spr> if [#<finish_passes> GT 0]
+				o<thr_ext2> if [#<peak> GT 0.0]
+					#<x_fin> = [#<dia> - #<depth>]
+				o<thr_ext2> else
+					#<x_fin> = #<dia>
+				o<thr_ext2> endif
+				o<thr_sprl> repeat [#<finish_passes>]
+					G0 X#<x_fin>
+					G33 Z#<end_z> X#<x_fin> K#<pitch>
+				o<thr_sprl> endrepeat
+			o<thr_spr> endif
+		o<thr_g33> else
+			G76 P[#<pitch> * #<helix_count>] Z#<end_z> I-#<peak> J#<idepth> R#<degress> K#<depth> Q30 H#<finish_passes> E#<t_len> L#<taper>
+		o<thr_g33> endif
 		#<pass> = [#<pass> + 1]
 	o110 endwhile
 

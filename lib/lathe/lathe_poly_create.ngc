@@ -1,0 +1,41 @@
+o<lathe_poly_create> sub
+(CNC Proton — build lathe profile table; corners stay as A/C for G71/G72)
+
+	#<dst>     = [4981 - #5000 * 11]
+	#[#<dst>]  = 0
+	#<to_data> = 4982
+	#<prev_x>  = #4993
+	#<prev_y>  = #4994
+	#<counter> = 1
+
+	o<lpc_while> while [#<counter> LE #5000]
+		o<lpc_line> if [[#[#<to_data> + 2] GT 0] AND [[#<prev_x> NE #[#<to_data>]] OR [#<prev_y> NE #[#<to_data> + 1]]]]
+			o<lathe_poly_add_data> CALL [#<dst>] [#[#<to_data>]] [#[#<to_data> + 1]] [#[#<to_data> + 2]] \
+				[#[#<to_data> + 3]] [#[#<to_data> + 4]] [#[#<to_data> + 7]] [#[#<to_data> + 8]]
+		o<lpc_line> elseif [#[#<to_data> + 2] EQ 0]
+			o<lathe_poly_add_data> CALL [#<dst>] [#[#<to_data>]] [#[#<to_data> + 1]] [#[#<to_data> + 2]] \
+				[#[#<to_data> + 3]] [#[#<to_data> + 4]] [0] [0]
+		o<lpc_line> elseif [#[#<to_data> + 2] EQ -3]
+			(mirror block — reuse mill helper then recompile mirrored records)
+			o<line> CALL [#[#<to_data>]] [#[#<to_data> + 1]] [#[#<to_data> + 3]] [#[#<to_data> + 4]]
+			#15 = #<_line_phi>
+			#<src_count> = [#[#<dst>] - 1]
+			#<src> = [#<dst> - #<src_count> * 8 - 1]
+			o<lpc_mir> while [#<src_count> GT 0]
+				o<line> CALL [#[#<to_data>]] [#[#<to_data> + 1]] [#[#<src>]] [#[#<src> + 1]]
+				o<rotate_xy> CALL [#[#<src>]] [#[#<src> + 1]] [#[#<to_data>]] [#[#<to_data> + 1]] [[#15 - #<_line_phi>] * 2] [0] [45] [46]
+				o<line> CALL [#[#<to_data>]] [#[#<to_data> + 1]] [#[#<src> - 5]] [#[#<src> - 4]]
+				o<rotate_xy> CALL [#[#<src> - 5]] [#[#<src> - 4]] [#[#<to_data>]] [#[#<to_data> + 1]] [[#15 - #<_line_phi>] * 2] [0] [50] [51]
+				o<lathe_poly_add_data> CALL [#<dst>] [#45] [#46] [#[#<src> - 6]] [#50] [#51] [0] [0]
+				#<src_count> = [#<src_count> - 1]
+				#<src> = [#<src> + 8]
+			o<lpc_mir> endwhile
+		o<lpc_line> endif
+
+		#<counter> = [#<counter> + 1]
+		#<prev_x> = #[#<dst> - 1 - [#[#<dst>]] * 8]
+		#<prev_y> = #[#<dst> - 1 - [#[#<dst>]] * 8 + 1]
+		#<to_data> = [#<to_data> - 11]
+	o<lpc_while> endwhile
+
+o<lathe_poly_create> endsub
