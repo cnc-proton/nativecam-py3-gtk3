@@ -1,9 +1,10 @@
 
 # coding: utf-8
 '''
-Created on 2017-03-06
+NativeCAM preferences editor.
 
-@author: Fernand
+Original: Fernand Veilleux (2017)
+Python 3 / GTK3 port: CNC Proton (2026)
 '''
 
 import sys, os

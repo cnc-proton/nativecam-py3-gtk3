@@ -1,0 +1,33 @@
+NativeCAM for LinuxCNC — attribution
+=====================================
+
+Original author and maintainer (Python 2 / GTK2)
+------------------------------------------------
+Fernand Veilleux (FernV) <fernveilleux@gmail.com>
+https://github.com/FernV/NativeCAM
+
+Initiator (LinuxCNC-Features basis)
+-----------------------------------
+Nick Drobchenko (cnc-club.ru)
+
+Contributors to original NativeCAM
+--------------------------------
+Meison Kim, Alexander Wigen, Konstantin Navrockiy, Mit Zot,
+Dewey Garrett, Karl Jacobs, Philip Mullen
+
+Python 3 / GTK3 port (2026)
+---------------------------
+CNC Proton <info@cnc-proton.com>
+https://github.com/cnc-proton/nativecam-py3-gtk3
+
+This port migrated the entire application from Python 2.7 and PyGTK/GTK2
+to Python 3 and PyGObject/GTK3 for Debian 13 Trixie and LinuxCNC 2.9+.
+The work included rewriting the UI stack, updating thousands of API calls,
+GladeVCP embedding fixes, Debian packaging, and new milling features
+(Side Drill, workpiece-based center handling, INI editor robustness).
+
+Derivative works
+----------------
+Under GPL-2 you may fork and modify this project, but please retain the
+copyright and author notices above, including the CNC Proton port credit,
+when redistributing modified versions.

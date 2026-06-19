@@ -2,16 +2,15 @@
 # coding: utf-8
 
 '''
-Will restore LinuxCNC files to end usage of nondeb_setup
+Restore LinuxCNC files after non-deb NativeCAM setup.
+
+Original: Fernand Veilleux (2016)
+Python 3 / GTK3 port: CNC Proton (2026)
 
 usage :
     sudo restore_lcnc.py -c
 
     w/ or w/o argument c it will restore files and delete links
-
-Created on 2016-10-08
-
-@author: Fernand Veilleux
 '''
 
 import sys

@@ -1,20 +1,30 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: nativecam
+Upstream-Contact: CNC Proton <info@cnc-proton.com>
+Source: https://github.com/cnc-proton/nativecam-py3-gtk3
 
 Files: *
-License: GPL-2
 Copyright: 2017 Fernand Veilleux <fernveilleux@gmail.com>
+Copyright: 2012 Nick Drobchenko
+Copyright: 2026 CNC Proton <info@cnc-proton.com>
 Comment:
  NativeCAM is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  .
  *****************************************************************
- Much of NativeCAM is derived from LinuxCNC-Features, a work of 
+ Much of NativeCAM is derived from LinuxCNC-Features, a work of
  Nick Drobchenko and others.  It was used as the basis of NativeCAM,
  but received extensive modifications.  NativeCAM is NOT public domain.
  Anyone wishing to use the public domain code in a way that is not
  compatible with the (L)GPL must locate the original LinuxCNC-Features
  code - they may NOT use NativeCAM.
+ .
+ The Python 3 / GTK3 port (release 2.0b, 2026) was performed by CNC
+ Proton.  It migrated the codebase from Python 2.7 / PyGTK / GTK2 to
+ Python 3 / PyGObject / GTK3, updated GladeVCP integration, packaging,
+ and added Side Drill and related milling improvements.  Derivative
+ works must retain this notice and the upstream author credits.
  *****************************************************************
 
 License: GPL-2

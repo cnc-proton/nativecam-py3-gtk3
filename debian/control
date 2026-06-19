@@ -1,6 +1,6 @@
 Source: nativecam
 Section: misc
-Maintainer: Fernand Veilleux <fernveilleux@gmail.com>
+Maintainer: CNC Proton <info@cnc-proton.com>
 Priority: optional
 Build-Depends: debhelper (>= 10), dh-python
 Standards-Version: 4.5.0

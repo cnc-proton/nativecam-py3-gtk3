@@ -3,17 +3,21 @@
 # ------------------------------------------------------------------
 # --  NO USER SETTINGS IN THIS FILE -- EDIT PREFERENCES INSTEAD  ---
 # ------------------------------------------------------------------
+# NativeCAM for LinuxCNC
+# Original: Fernand Veilleux (FernV) — Python 2 / GTK2
+# Python 3 / GTK3 port: CNC Proton (2026) — https://github.com/cnc-proton/nativecam-py3-gtk3
+# Licensed under GPL-2. See LICENSE and AUTHORS.
 
 APP_COPYRIGHT = '''Copyright © 2017 Fernand Veilleux : fernveilleux@gmail.com
 Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru
-Copyright © 2026 CNC Proton (Python 3 / GTK3 Port)'''
-APP_AUTHORS = ['Fernand Veilleux (original author)',
-               'Nick Drobchenko (initiator)',
+Copyright © 2026 CNC Proton — Python 3 / GTK3 port (info@cnc-proton.com)'''
+APP_AUTHORS = ['Fernand Veilleux (original author, NativeCAM)',
+               'Nick Drobchenko (initiator, LinuxCNC-Features)',
                'Meison Kim', 'Alexander Wigen', 'Konstantin Navrockiy', 'Mit Zot',
                'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen',
-               'CNC Proton (Python 3 / GTK3 port, Side Drill)']
+               'CNC Proton — Python 2/GTK2 → Python 3/GTK3 port, Side Drill, packaging']
 
-APP_VERSION = "2.0b"
+APP_VERSION = "2.0b-5"
 
 import sys
 import gi

@@ -1,3 +1,13 @@
+nativecam (2.0b-5) UNRELEASED; urgency=medium
+
+  * Document and protect CNC Proton authorship of the Python 3 / GTK3 port.
+  * Add AUTHORS file; extend debian/copyright with port credit and upstream
+    contact; set package Maintainer to CNC Proton.
+  * Strengthen in-app copyright, author list, and README attribution notice
+    for derivative works (GPL-2).
+
+ -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 12:00:00 +0300
+
 nativecam (2.0b-4) UNRELEASED; urgency=medium
 
   * verify_ini: tolerate duplicate INI keys (non-strict parser); safe single-line
