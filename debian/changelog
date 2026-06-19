@@ -7,6 +7,9 @@ nativecam (2.0b-5) UNRELEASED; urgency=medium
     for derivative works (GPL-2).
   * Remove AI tooling traces from .gitignore and commit messages.
   * Strip verbose GTK/port commentary from ncam.py and pref_edit.py (no logic changes).
+  * Port GTK3 stability fixes from community fork: dialog parent/destroy flags,
+    XEMBED deferred show_all, Wayland warning, paned size clamping, file extension
+    checks, and python3-tk dependency.
 
  -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 14:00:00 +0300
 

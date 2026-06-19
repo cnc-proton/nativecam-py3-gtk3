@@ -29,6 +29,7 @@ from gi.repository import GdkPixbuf
 from gi.repository import GLib
 from lxml import etree
 from gi.repository import GObject as gobject
+from gi.repository import Gdk
 import configparser as ConfigParser
 import re, os
 import getopt
@@ -47,6 +48,14 @@ import tkinter as Tkinter
 import math
 import contextlib
 import warnings
+
+try:
+    _display = Gdk.Display.get_default()
+    if _display and not _display.get_name().lower().startswith('x11') and not _display.get_name().lower().startswith('display'):
+        if 'wayland' in _display.get_name().lower():
+            print("Warning: NativeCAM embedding (XEMBED) requires X11. Wayland detected ('%s')." % _display.get_name())
+except Exception:
+    pass
 
 warnings.filterwarnings(
     'ignore', category=DeprecationWarning,
@@ -510,7 +519,7 @@ if platform.system() != 'Windows' :
     try :
         import linuxcnc
     except ImportError as detail :
-        err_exit(detail)
+        err_exit(_('NativeCAM failed to import the linuxcnc module. Is LinuxCNC installed or are you running this script inside a LinuxCNC environment?\n\nDetails: %s') % detail)
 
 _tk_axis_send_root = None
 
@@ -574,9 +583,13 @@ def require_ncam_lib(fname, ini_instance):
             else :
                 thedir = os.path.join(os.path.realpath(os.path.dirname(fname)), d)
             if os.path.isdir(thedir) :
-                print("   %s" % (os.path.realpath(thedir)))
+                real_dir = os.path.realpath(thedir)
+                print("   %s" % real_dir)
                 if not found_lib_dir :
-                    found_lib_dir = thedir.find(require_lib) == 0
+                    if os.path.exists(require_lib):
+                        found_lib_dir = os.path.samefile(real_dir, require_lib) or real_dir.startswith(require_lib)
+                    else:
+                        found_lib_dir = real_dir.startswith(require_lib)
 
         print("")
 
@@ -684,7 +697,7 @@ class Tools(object):
 class VKB(object):
 
     def __init__(self, toplevel, tooltip, min_value, max_value, data_type, convertible) :
-        self.dlg = gtk.Dialog()
+        self.dlg = gtk.Dialog(parent=toplevel, flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
         self.dlg.set_decorated(False)
         self.dlg.set_border_width(3)
         self.dlg.set_property("skip-taskbar-hint", True)
@@ -1155,7 +1168,7 @@ class CellRendererMx(gtk.CellRendererText):
             return vkb.run(self.not_allowed)
 
     def edit_list(self, time_out = 0.05):
-        self.list_window = gtk.Dialog()
+        self.list_window = gtk.Dialog(parent=self.tv.get_toplevel(), flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
         self.list_window.set_border_width(0)
         self.list_window.set_decorated(False)
         self.list_window.set_property("skip-taskbar-hint", True)
@@ -1211,16 +1224,22 @@ class CellRendererMx(gtk.CellRendererText):
 
         response = self.list_window.run()
 
-        model, ls_itr = ls_view.get_selection().get_selected()
-        new_val = model.get_value(ls_itr, 1)
-        
+        if response == gtk.ResponseType.OK:
+            model, ls_itr = ls_view.get_selection().get_selected()
+            if ls_itr is not None:
+                new_val = model.get_value(ls_itr, 1)
+            else:
+                new_val = self.param_value
+        else:
+            new_val = self.param_value
+
         self.lst_is_closing = True
-        self.list_window.destroy() 
-        
+        self.list_window.destroy()
+
         return response, new_val
 
     def edit_string(self, time_out = 0.05):
-        self.stringedit_window = gtk.Dialog()
+        self.stringedit_window = gtk.Dialog(parent=self.tv.get_toplevel(), flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
         self.stringedit_window.hide()
         self.stringedit_window.set_decorated(False)
         self.stringedit_window.set_border_width(0)
@@ -1247,10 +1266,13 @@ class CellRendererMx(gtk.CellRendererText):
             self.stringedit_entry.set_text(self.param_value)
         self.inputKey = ''
         response = self.stringedit_window.run()
-        new_val = self.stringedit_entry.get_text()
-        
+        if response == gtk.ResponseType.OK:
+            new_val = self.stringedit_entry.get_text()
+        else:
+            new_val = self.param_value
+
         self.str_is_closing = True
-        self.stringedit_window.destroy()  
+        self.stringedit_window.destroy()
         return response, new_val
 
     def list_keypress(self, widget, event) :
@@ -1335,6 +1357,8 @@ class CellRendererMx(gtk.CellRendererText):
                     filt.add_pattern(option)
 
                 filechooserdialog.add_filter(filt)
+                filechooserdialog.set_transient_for(treeview.get_toplevel())
+                filechooserdialog.set_destroy_with_parent(True)
                 filechooserdialog.set_keep_above(True)
 
                 filt = gtk.FileFilter()
@@ -1359,7 +1383,7 @@ class CellRendererMx(gtk.CellRendererText):
             self.selection = treeview.get_selection()
             self.treestore, self.treeiter = self.selection.get_selected()
 
-            self.textedit_window = gtk.Dialog()
+            self.textedit_window = gtk.Dialog(parent=treeview.get_toplevel(), flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
             self.textedit_window.set_decorated(False)
             self.textedit_window.set_property("skip-taskbar-hint", True)
 
@@ -2621,7 +2645,7 @@ class NCam(gtk.VBox):
         self._setup_toplevel_integration()
         self.set_size_request(120, 80)
 
-        self.show_all()
+        self.addVBox.set_no_show_all(True)
 
         self.actionCurrent.set_visible(not self.pref.autosave)
         self.addVBox.hide()
@@ -3719,7 +3743,9 @@ class NCam(gtk.VBox):
         self.add_toolbar.set_icon_size(toolbar_icon_size)
 
         self.feature_pane = self.builder.get_object("ncam_pane")
+        self.feature_pane.connect('size-allocate', self._on_vpane_size_allocate)
         self.feature_Hpane = self.builder.get_object("hpaned1")
+        self.feature_Hpane.connect('size-allocate', self._on_hpane_size_allocate)
         self.params_scroll = self.builder.get_object("params_scroll")
         self.frame2 = self.builder.get_object("frame2")
         self.addVBox = self.builder.get_object("frame3")
@@ -3918,8 +3944,33 @@ class NCam(gtk.VBox):
         else:
             tv.expand_row(path, True)
 
+    def _on_hpane_size_allocate(self, widget, allocation):
+        total_w = allocation.width
+        if total_w > 100:
+            pos = widget.get_position()
+            if pos > total_w - 120:
+                widget.set_position(total_w - 120)
+            elif pos < 100:
+                widget.set_position(100)
+
+    def _on_vpane_size_allocate(self, widget, allocation):
+        total_h = allocation.height
+        if total_h > 100:
+            pos = widget.get_position()
+            if pos > total_h - 100:
+                widget.set_position(total_h - 100)
+            elif pos < 50:
+                widget.set_position(50)
+
     def tv_w_adj_value_changed(self, *arg):
-        self.feature_Hpane.set_position(int(self.tv_w_adj.get_value()))
+        pos = int(self.tv_w_adj.get_value())
+        total_w = self.feature_Hpane.get_allocated_width()
+        if total_w > 100:
+            if pos > total_w - 120:
+                pos = total_w - 120
+            if pos < 100:
+                pos = 100
+        self.feature_Hpane.set_position(pos)
 
     def col_width_adj_value_changed(self, *arg):
         self.treeview.get_column(0).set_min_width(int(self.col_width_adj.get_value()))
@@ -4268,11 +4319,11 @@ class NCam(gtk.VBox):
             filechooserdialog.set_current_folder(NGC_DIR)
             filechooserdialog.set_keep_above(True)
             filechooserdialog.set_transient_for(self.get_toplevel())
+            filechooserdialog.set_destroy_with_parent(True)
 
             if filechooserdialog.run() == gtk.ResponseType.OK:
-                gcode = self.to_gcode()
                 filename = filechooserdialog.get_filename()
-                if filename[-4] != ".ngc" not in filename :
+                if not filename.lower().endswith(".ngc") :
                     filename += ".ngc"
                 with open(filename, "w") as f:
                     f.write(self.to_gcode())
@@ -5114,6 +5165,7 @@ class NCam(gtk.VBox):
             filechooserdialog.set_current_folder(os.path.join(NCAM_DIR, CATALOGS_DIR, self.catalog_dir, PROJECTS_DIR))
             filechooserdialog.set_keep_above(True)
             filechooserdialog.set_transient_for(self.get_toplevel())
+            filechooserdialog.set_destroy_with_parent(True)
 
             if filechooserdialog.run() == gtk.ResponseType.OK:
                 fname = filechooserdialog.get_filename()
@@ -5218,11 +5270,12 @@ class NCam(gtk.VBox):
             filechooserdialog.set_do_overwrite_confirmation(True)
             filechooserdialog.set_keep_above(True)
             filechooserdialog.set_transient_for(self.get_toplevel())
+            filechooserdialog.set_destroy_with_parent(True)
 
             if filechooserdialog.run() == gtk.ResponseType.OK:
                 xml = self.treestore_to_xml()
                 CURRENT_PROJECT = filechooserdialog.get_filename()
-                if CURRENT_PROJECT[-4] != ".xml" not in CURRENT_PROJECT :
+                if not CURRENT_PROJECT.lower().endswith(".xml") :
                     CURRENT_PROJECT += ".xml"
                 etree.ElementTree(xml).write(CURRENT_PROJECT, pretty_print = True)
                 self.file_changed = False
@@ -5262,6 +5315,7 @@ class NCam(gtk.VBox):
             filechooserdialog.set_current_folder(dir_)
             filechooserdialog.set_keep_above(True)
             filechooserdialog.set_transient_for(self.get_toplevel())
+            filechooserdialog.set_destroy_with_parent(True)
 
             if filechooserdialog.run() == gtk.ResponseType.OK:
                 filename = filechooserdialog.get_filename()
@@ -5295,6 +5349,7 @@ class NCam(gtk.VBox):
             filechooserdialog.set_current_folder(os.path.join(NCAM_DIR, CUSTOM_DIR))
             filechooserdialog.set_keep_above(True)
             filechooserdialog.set_transient_for(self.get_toplevel())
+            filechooserdialog.set_destroy_with_parent(True)
 
             if filechooserdialog.run() == gtk.ResponseType.OK:
                 self.add_feature(None, filechooserdialog.get_filename())
@@ -5543,6 +5598,7 @@ if __name__ == "__main__":
     window = gtk.Dialog(title=APP_TITLE, modal=True)
     ncam = NCam(accel_toplevel=window)
     window.vbox.add(ncam)
+    ncam.show_all()
     ncam.actionCurrent.set_visible(True)
     window.connect("destroy", gtk.main_quit)
     window.set_default_size(400, 800)

@@ -337,6 +337,7 @@ class PrefEditor():
 
         builder.get_object("buttonSave").connect('clicked', self.save_click)
         prefdlg.set_transient_for(parent)
+        prefdlg.set_destroy_with_parent(True)
         prefdlg.set_keep_above(True)
         prefdlg.show_all()
         builder.get_object('spinbutton14').set_visible(catalog in ['mill', 'lathe'])
