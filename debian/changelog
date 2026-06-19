@@ -1,3 +1,14 @@
+nativecam (2.0b-5) UNRELEASED; urgency=medium
+
+  * GTK3 embed: defer widget realize in GladeVCP; isolate addVBox from host
+    show_all; dialog parent and transient handling; paned size clamps; Wayland
+    notice for XEMBED.
+  * Fix NGC and XML save extension checks; improve require_ncam_lib path match.
+  * Add AUTHORS; update copyright and maintainer; ship README in package docs;
+    declare python3-tk dependency.
+
+ -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 12:00:00 +0300
+
 nativecam (2.0b-4) UNRELEASED; urgency=medium
 
   * verify_ini: tolerate duplicate INI keys (non-strict parser); safe single-line

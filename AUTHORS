@@ -1,0 +1,15 @@
+NativeCAM
+=========
+
+Original author:
+  Fernand Veilleux <fernveilleux@gmail.com>
+
+Based on LinuxCNC-Features by:
+  Nick Drobchenko and others
+
+Contributors:
+  Meison Kim, Alexander Wigen, Konstantin Navrockiy, Mit Zot,
+  Dewey Garrett, Karl Jacobs, Philip Mullen
+
+Python 3 / GTK3 port and Side Drill feature:
+  CNC Proton <info@cnc-proton.com>

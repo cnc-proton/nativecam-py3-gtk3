@@ -3,6 +3,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Files: *
 License: GPL-2
 Copyright: 2017 Fernand Veilleux <fernveilleux@gmail.com>
+Copyright: 2026 CNC Proton <info@cnc-proton.com>
 Comment:
  NativeCAM is distributed in the hope that it will be useful, but
  WITHOUT ANY WARRANTY; without even the implied warranty of
