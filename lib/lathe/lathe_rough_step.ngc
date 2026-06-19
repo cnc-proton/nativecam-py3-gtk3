@@ -1,0 +1,56 @@
+o<lathe_rough_step> sub
+(CNC Proton — diameter step-down roughing along a fixed Z-X profile)
+(#1 data anchor, #2 starting radius, #3 final radius)
+
+	#<anchor>     = #1
+	#<r_start>    = #2
+	#<r_finish>   = #3
+	#<saved_cs>   = [#<_coord_system> / 10]
+
+	G18
+	o<get_offsets> CALL
+	#<ox> = #<_offsets_x>
+	#<oz> = #<_offsets_z>
+	#<or> = #<_offsets_r>
+
+	G#<_off_rot_coord_system>
+	o<rotate_xy> CALL [#<_offsets_z>] [#<_offsets_x>] [#<_offsets_z>] [#<_offsets_x>] [#<_offsets_r>]
+
+	o<lrs_one> if [#<r_finish> EQ #<r_start>]
+		#<step> = 0
+		#<passes> = 1
+	o<lrs_one> else
+		#<passes> = FUP[ABS[#<r_finish> - #<r_start>] / #<_rough_cut>]
+		#<step> = [[#<r_finish> - #<r_start>] / #<passes>]
+	o<lrs_one> endif
+
+	o<set_feed_rate_and_speed> CALL [100]
+
+	#<_cut_loop_final_z> = 0
+	#<_ramp_down_ratio> = 0
+	#<r_now> = #<r_start>
+
+	o<lrs_while> while [1]
+		#<x_shift> = [[#<r_now> - #<r_finish>] * #<_diameter_mode>]
+		G10 L2 P#5220 X[#<_rotated_y> + #<x_shift>] Z#<_rotated_x> R#<_offsets_r>
+
+		o<lathe_path_walk> CALL [#<anchor>] [0] [1]
+
+		o<lrs_done> if [#<r_now> EQ #<r_finish>]
+			o<lrs_while> break
+		o<lrs_done> endif
+
+		#<r_now> = [#<r_now> + #<step>]
+		o<lrs_clip_hi> if [[#<r_start> GT #<r_finish>] AND [#<r_now> LT #<r_finish>]]
+			#<r_now> = #<r_finish>
+		o<lrs_clip_hi> elseif [[#<r_start> LT #<r_finish>] AND [#<r_now> GT #<r_finish>]]
+			#<r_now> = #<r_finish>
+		o<lrs_clip_hi> endif
+	o<lrs_while> endwhile
+
+	G0 X[#<_wp_dia_od> + #<_X_rapid>]
+	G40
+	G#<saved_cs>
+	G10 L2 P#5220 X#<ox> Z#<oz> R#<or>
+
+o<lathe_rough_step> endsub

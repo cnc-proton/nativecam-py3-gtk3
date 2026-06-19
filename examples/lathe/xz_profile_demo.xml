@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lcnc-ncam>
+  <feature src="proj_desc.cfg" name="Project Description" type="comment" icon="prj-desc.png" id="comment_001" expanded="False">
+    <param type="prjname" call="#param_pn" name="Project name" value="XZ profile demo"/>
+    <param type="text" call="#param_n" name="Note" value="Turning contour sample — step-down, G71, or G72 from XZ Profile cycle."/>
+  </feature>
+  <feature src="lathe/material.cfg" name="Workpiece" type="workpiece" icon="l-stock.png" id="workpiece_001" expanded="False">
+    <param type="bool" call="#param_sh" name="Show limits" value="0"/>
+    <param type="sub-header" call="#param_h1" name="Size and coord"/>
+    <param type="float" call="#param_od" name="Ext. diameter" header="h1" value="2.0" metric_value="50.0" icon="e-diam.png"/>
+    <param type="float" call="#param_id" name="Int. diameter" header="h1" value="0.0" metric_value="0.0" icon="i-diam.png"/>
+    <param type="float" call="#param_l" name="Length" header="h1" value="10.0" metric_value="250.0" icon="width.png"/>
+    <param type="float" call="#param_z" name="Begin position" header="h1" value="0.0" metric_value="0.0" icon="z.png"/>
+    <param type="sub-header" call="#param_h2" name="Params"/>
+    <param type="combo" call="#param_wmode" name="Work mode" header="h2" value="7" options="Diameter=7:Radius=8" icon="circle-rad-dia.png"/>
+    <param type="float" call="#param_x_rap" name="X Rapid" header="h2" value="0.50" metric_value="12.0" icon="lathe-rappid-x.png"/>
+    <param type="float" call="#param_z_rap" name="Z Rapid" header="h2" value="0.50" metric_value="12.0" icon="lathe-rappid.png"/>
+  </feature>
+  <feature src="lathe/tool-change.cfg" name="Tool Change" type="tool_change" icon="lathe-tool-change.png" id="tool_change_001" expanded="False">
+    <param type="bool" call="#param_act" name="Active" value="1" icon="enable.png"/>
+    <param type="sub-header" call="#param_h1" name="Tool and usage"/>
+    <param type="tool" call="#param_dnum" name="Tool number" header="h1" value="1" icon="lathe-tool.png"/>
+    <param type="combo" call="#param_us" name="Usage" header="h1" value="0" options="Roughing and finishing=0:Roughing=1:Finishing=2" icon="tool-usage.png"/>
+    <param type="combo" call="#param_spindle_dir" name="Start spindle" header="h1" value="3" options="No=5:Clockwise=3:Counter-clockwise=4" icon="lathe-dir.png"/>
+    <param type="combo" call="#param_cooling" name="Use cooling" header="h1" value="8" options="None=9:Flood=8:Mist=7" icon="snowflake.png"/>
+    <param type="sub-header" call="#param_h2" name="Spindle speed"/>
+    <param type="combo" call="#param_mode" name="Mode" header="h2" value="1" options="Constant surface=0:RPM=1" icon="lathe-chuck.png"/>
+    <param type="int" call="#param_speed" name="Surface/spindle speed" header="h2" value="800" icon="tool-spindle.png"/>
+    <param type="int" call="#param_max_speed" name="Max spindle speed" header="h2" value="1500" icon="tool-spindle.png"/>
+    <param type="sub-header" call="#param_h8" name="Roughing"/>
+    <param type="float" call="#param_r_feed" name="Feed" header="h8" value="5.0" metric_value="125.0" icon="lathe-feed.png"/>
+    <param type="float" call="#param_c_dpt" name="Cut depth" header="h8" value="0.02" metric_value="0.5" icon="lathe-depth-step.png"/>
+    <param type="sub-header" call="#param_h4" name="Finishing"/>
+    <param type="float" call="#param_f_feed" name="Feed" header="h4" value="2.0" metric_value="50.0" icon="lathe-feed.png"/>
+    <param type="float" call="#param_fc_dpt" name="Cut depth" header="h4" value="0.01" metric_value="0.25" icon="lathe-depth-step.png"/>
+    <param type="sub-header" call="#param_hc" name="Clearances"/>
+    <param type="float" call="#param_x_safe" name="X clear" header="hc" value="0.125" metric_value="3.0" icon="lx-clear.png"/>
+    <param type="float" call="#param_ix_safe" name="Internal X clear" header="hc" value="0.040" metric_value="1.0" icon="ix-clear.png"/>
+    <param type="float" call="#param_z_safe" name="Z clear" header="hc" value="0.125" metric_value="3.0" icon="lz-clear.png"/>
+  </feature>
+  <feature src="lathe/xz_profile.cfg" name="XZ Profile" type="turn_xz_profile" icon="polyline.png" id="xz_profile_001" expanded="True">
+    <param type="bool" call="#param_act" name="Active" value="1" icon="enable.png"/>
+    <param type="sub-header" call="#param_rough" name="Roughing cycle"/>
+    <param type="combo" call="#param_mode" name="Cycle type" header="rough" value="0" options="Step-down along X (all LCNC)=0:G71 contour rough (LCNC 2.9+)=71:G72 face rough (LCNC 2.9+)=72"/>
+    <param type="sub-header" call="#param_h_dia" name="Diameter limits"/>
+    <param type="float" call="#param_dia0" name="Stock diameter" header="h_dia" value="2.0" metric_value="50.0" icon="x.png"/>
+    <param type="float" call="#param_dia1" name="Finish diameter" header="h_dia" value="1.6" metric_value="40.0" icon="x-end.png"/>
+    <param type="sub-header" call="#param_h_ax" name="Longitudinal axis"/>
+    <param type="float" call="#param_z0" name="Profile start Z" header="h_ax" value="0.0" metric_value="0.0" icon="z.png"/>
+    <param type="items" call="#param_items" name="Segments" icon="items.png" expanded="True">
+      <feature src="lathe/xz_line.cfg" name="XZ Line" type="turn_xz_line" icon="line-to.png" id="xz_line_001">
+        <param type="bool" call="#param_act" name="Active" value="1" icon="enable.png"/>
+        <param type="sub-header" call="#param_hdr" name="End point"/>
+        <param type="float" call="#param_dia" name="X diameter" header="hdr" value="2.0" metric_value="50.0" icon="x.png"/>
+        <param type="float" call="#param_zed" name="Z" header="hdr" value="-2.0" metric_value="-50.0" icon="z.png"/>
+        <param type="combo" call="#param_mode" name="Coordinate mode" header="hdr" value="1" options="Incremental=0:Absolute=1:Z incr, X abs=10:Z abs, X incr=11" icon="line-rel.png"/>
+      </feature>
+      <feature src="lathe/xz_line.cfg" name="XZ Line" type="turn_xz_line" icon="line-to.png" id="xz_line_002">
+        <param type="bool" call="#param_act" name="Active" value="1" icon="enable.png"/>
+        <param type="sub-header" call="#param_hdr" name="End point"/>
+        <param type="float" call="#param_dia" name="X diameter" header="hdr" value="1.6" metric_value="40.0" icon="x.png"/>
+        <param type="float" call="#param_zed" name="Z" header="hdr" value="-4.0" metric_value="-100.0" icon="z.png"/>
+        <param type="combo" call="#param_mode" name="Coordinate mode" header="hdr" value="1" options="Incremental=0:Absolute=1:Z incr, X abs=10:Z abs, X incr=11" icon="line-rel.png"/>
+      </feature>
+    </param>
+  </feature>
+</lcnc-ncam>

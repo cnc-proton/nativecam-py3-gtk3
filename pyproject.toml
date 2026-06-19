@@ -1,0 +1,3 @@
+[tool.ruff.lint.per-file-ignores]
+"ncam.py" = ["E402"]
+"pref_edit.py" = ["E402"]

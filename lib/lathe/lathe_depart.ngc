@@ -1,0 +1,8 @@
+o<lathe_depart> sub
+(CNC Proton — leave the profile to a safe diameter)
+(#1 unused anchor, #2..#5 reserved for future retract styles)
+
+	G40
+	G0 X[#<_wp_dia_od> + #<_X_rapid>]
+
+o<lathe_depart> endsub

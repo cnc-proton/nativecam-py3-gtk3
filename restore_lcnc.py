@@ -14,12 +14,11 @@ Created on 2016-10-08
 @author: Fernand Veilleux
 '''
 
-import sys
 import os
 
 try :
     from lxml import etree
-except :
+except Exception:
     print('python-lxml required, command is in README.md')
     exit(1)
 

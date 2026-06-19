@@ -1,0 +1,30 @@
+o<lathe_xz_move> sub
+(CNC Proton — emit one cutting move on the lathe profile plane)
+(ARG1 Z target, ARG2 X radius target, ARG3 G-code (0 rapid, 1 line, 2/3 arc)
+ ARG4 K delta-Z, ARG5 I delta-X radius, ARG6..8 feed/speed/debug reserved)
+
+	#<tgt_z>  = #1
+	#<tgt_xr> = #2
+	#<motion> = #3
+	#<dz>     = #4
+	#<dx>     = #5
+
+	o<lxm_rapid> if [#<motion> EQ 0]
+		G0 X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z>
+
+	o<lxm_rapid> else
+		o<lxm_feed> if [#6 GT 0]
+			F[#<_feed_normal> * [#6 MOD 1]]
+		o<lxm_feed> endif
+
+		o<lxm_line> if [#<motion> EQ 1]
+			G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z>
+		o<lxm_line> else
+			G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z> I#<dx> K#<dz>
+		o<lxm_line> endif
+	o<lxm_rapid> endif
+
+	#<_cut_current_x> = #<tgt_z>
+	#<_cut_current_y> = #<tgt_xr>
+
+o<lathe_xz_move> endsub

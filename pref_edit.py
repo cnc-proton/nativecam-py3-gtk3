@@ -6,16 +6,17 @@ Created on 2017-03-06
 @author: Fernand
 '''
 
-import sys, os
+import os
+import sys
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk as gtk
 from gi.repository import GdkPixbuf
 from gi.repository import GLib
-from gi.repository import Gdk as gdk
 import configparser as ConfigParser
-import gettext, re
-from gi.repository import Pango as pango
+import gettext
+import re
+from gettext import gettext as _
 
 translate_test = True
 
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     try :
         lang = gettext.translation(APP_NAME, nativecam_locale, fallback = True)
         lang.install()
-    except :
+    except Exception:
         gettext.install(APP_NAME, None)
 
 def translate(fstring):
@@ -59,7 +60,7 @@ class PrefEditor():
                 return self.config_pref.getfloat(section, key)
             else :
                 return self.config_def.getfloat(section, key)
-        except :
+        except Exception:
             return default
 
     def read_boolean(self, cf, section, key, default):
@@ -68,7 +69,7 @@ class PrefEditor():
                 return self.config_pref.getboolean(section, key)
             else :
                 return self.config_def.getboolean(section, key)
-        except :
+        except Exception:
             return default
 
     def read_str(self, cf, section, key, default):
@@ -81,7 +82,7 @@ class PrefEditor():
                 return default
             else :
                 return val
-        except :
+        except Exception:
             return default
 
     def read_int(self, cf, section, key, default):
@@ -107,7 +108,7 @@ class PrefEditor():
 
         try :
             gf = open(os.path.join(sysdir, "ncam_pref.glade")).read()
-        except :
+        except Exception:
             raise IOError(_("Expected file not found : %s") % 'ncam_pref.glade')
 
         builder = gtk.Builder()
