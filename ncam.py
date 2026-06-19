@@ -48,15 +48,12 @@ import math
 import contextlib
 import warnings
 
-# PyGObject warns on every Gtk.Action / UIManager / ImageMenuItem call until a GAction port.
 warnings.filterwarnings(
     'ignore', category=DeprecationWarning,
     message=r'.*Gtk\..* is deprecated')
 
 SYS_DIR = os.path.dirname(os.path.realpath(__file__))
 
-# GTK3 + deprecated GtkAction: create_menu_item() triggers harmless Gtk-CRITICAL in C
-# (gtk_accel_label_set_accel_closure). Filter that line only; other CRITICALs still log.
 @contextlib.contextmanager
 def _suppress_gtk_accel_menu_item_critical():
     needle = 'gtk_accel_label_set_accel_closure'
@@ -193,8 +190,6 @@ TB_CATALOG = {}
 EXCL_MESSAGES = {}
 GLOBAL_PREF = None
 UNIQUE_ID = 9
-# True only when running `python3 ncam.py` (standalone dialog). GladeVCP embeds NCam and owns gtk.main();
-# calling gtk.main_quit() from a handler there tears down GTK while the X embed is still dying → Gdk warnings.
 NCAM_STANDALONE = False
 
 UI_INFO = '''
@@ -517,8 +512,6 @@ if platform.system() != 'Windows' :
     except ImportError as detail :
         err_exit(detail)
 
-# One hidden Tk for Tcl "send" to Axis. A fresh Tk() on every auto-refresh makes Tk set
-# XSetErrorHandler while GDK may have an error trap pushed → Gdk-WARNING (GladeVCP + GTK3).
 _tk_axis_send_root = None
 
 def _tk_axis_remote_open(fname):
@@ -2254,11 +2247,9 @@ class Preferences(object):
         self.read_excluded_msgs()
 
     def val_all_excluded(self):
-        """Return True if all validation messages are suppressed globally."""
         return 'ALL:msgid-0' in EXCL_MESSAGES
 
     def val_feat_excluded(self, ftype):
-        """Return True if validation messages for a feature type are suppressed."""
         return ('%s:msgid-0' % ftype) in EXCL_MESSAGES
 
     def edit(self, nc):
@@ -2374,8 +2365,6 @@ class NCam(gtk.VBox):
     __gproperties = __gproperties__
 
     def __init__(self, *a, **kw):
-        # Standalone: __main__ builds GtkDialog then NCam() before vbox.add(ncam), so there is no
-        # parent during __init__ — pass accel_toplevel=window to attach AccelGroup before create_menubar().
         self._accel_toplevel_override = kw.pop('accel_toplevel', None)
         global NCAM_DIR, default_metric, NGC_DIR, SYS_DIR, no_ini, TOOL_TABLE, \
             GLOBAL_PREF, machine_metric
@@ -2628,11 +2617,8 @@ class NCam(gtk.VBox):
         self.treeview.connect("cursor-changed", self.get_selected_feature)
         self.get_selected_feature(self.treeview)
 
-        # AccelGroup must be on the GtkWindow *before* first map/show, or GtkAccelLabel CRITICAL.
-        # connect('realize', ...) after show_all() misses the first realize — too late for embed.
         self.connect('realize', self._on_realize)
         self._setup_toplevel_integration()
-        # Tiny first allocation (e.g. tab not sized yet) → GtkToolbar negative width / distribute CRITICAL.
         self.set_size_request(120, 80)
 
         self.show_all()
@@ -2771,9 +2757,6 @@ class NCam(gtk.VBox):
                              % {'s': tdir, 'd': srcdir, 'c': err})
 
     def _null_accel_label_closure(self, widget):
-        """GTK3: GtkAction.create_menu_item() can leave GtkAccelLabel with a closure that
-        gtk_accel_group_from_accel_closure does not resolve → CRITICAL. Clearing the
-        closure removes the broken shortcut *display*; keys may still work via the window."""
         def visit(w):
             if isinstance(w, gtk.AccelLabel):
                 try:
@@ -2798,7 +2781,6 @@ class NCam(gtk.VBox):
                 pass
             mi = _action.create_menu_item()
             self._null_accel_label_closure(mi)
-            # Radio/Toggle actions yield GtkCheckMenuItem — no set_image (GTK3).
             if isinstance(mi, gtk.ImageMenuItem):
                 if imgfile is None:
                     mi.set_image(_action.create_icon(menu_icon_size))
@@ -2931,13 +2913,11 @@ class NCam(gtk.VBox):
             menu_utils.append(gtk.SeparatorMenuItem())
 
             menu_val = gtk.Menu()
-            # Global validation messages toggle
             self.chk_val_all = gtk.CheckMenuItem(label=_('Show All Messages'))
             self.chk_val_all.set_active(not self.pref.val_all_excluded())
             self.chk_val_all.connect('toggled', self.action_toggle_val_all)
             menu_val.append(self.chk_val_all)
             menu_val.append(gtk.SeparatorMenuItem())
-            # Per-feature type validation toggle (updated dynamically)
             self.chk_val_feat = gtk.CheckMenuItem(label=_('Show Messages For Current Type'))
             self.chk_val_feat.set_active(True)
             self.chk_val_feat.connect('toggled', self.action_toggle_val_feat)
@@ -3118,9 +3098,6 @@ class NCam(gtk.VBox):
         self.autorefresh_call()
 
     def _prime_accel_for_window(self, w):
-        """Attach UIManager AccelGroup to GtkWindow (realize first). Do not connect_accelerator
-        here — create_menubar uses disconnect_accelerator + create_menu_item; then
-        _connect_action_accelerators_after_menu() restores keys."""
         if w is None or not isinstance(w, gtk.Window):
             return
         if getattr(self, '_accel_group_on_toplevel', False):
@@ -3141,7 +3118,6 @@ class NCam(gtk.VBox):
                 pass
 
     def _setup_toplevel_integration(self):
-        """Attach UIManager accel group to embedding GtkWindow; hook destroy for cleanup."""
         toplevel = self.get_toplevel()
         if toplevel is None or toplevel == self:
             return
@@ -3153,23 +3129,16 @@ class NCam(gtk.VBox):
             self._toplevel_destroy_hooked = True
 
     def _on_realize(self, *arg):
-        """If hierarchy changes, ensure accel/destroy hooks (idempotent)."""
         self._setup_toplevel_integration()
 
     def _close_all_popups(self, *arg):
-        """Close all active GTK popup windows when LinuxCNC exits.
-        Prevents phantom combo dropdowns and VKB dialogs from remaining on screen.
-        """
         self._ncam_shutting_down = True
         self._cancel_autorefresh_timer()
-        # Close any open combo popups on all CellRenderers in treeviews
         for tv in [self.treeview]:
             try:
                 tv.set_sensitive(False)
             except Exception:
                 pass
-        # Standalone only: popups are ours; GladeVCP must not gtk.main_quit() or mass-destroy toplevels
-        # while the plug/socket is shutting down (GdkWindow destroyed / NULL Gtk warnings).
         if not NCAM_STANDALONE:
             return
         for w in gtk.Window.list_toplevels():
@@ -3186,7 +3155,6 @@ class NCam(gtk.VBox):
         self._cancel_autorefresh_timer()
 
         def _safe_call(fn):
-            """Avoid tracebacks during LinuxCNC/gladevcp teardown (SIGINT, X disconnect, half-dead GTK)."""
             try:
                 fn()
             except KeyboardInterrupt:
@@ -5103,7 +5071,6 @@ class NCam(gtk.VBox):
                     self.treeview.set_cursor(mf_pa)
                     self.path_to_new_selected = mf_pa
             except Exception:
-                # not in treeview (do not use bare except: must not swallow KeyboardInterrupt)
                 pass
 
         self.path_to_new_selected = None
@@ -5126,7 +5093,6 @@ class NCam(gtk.VBox):
                 p.attr["new-selected"] = False
                 p.attr["expanded"] = self.treeview.row_expanded(mf_pa)
             except Exception:
-                # not in filter/treeview (do not use bare except: must not swallow KeyboardInterrupt)
                 pass
 
         self.treestore.foreach(treestore_get_expand)

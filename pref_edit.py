@@ -386,14 +386,12 @@ class PrefEditor():
         self.imgAddMenu.set_from_pixbuf(self.get_pixbuf('circle.png', self.getint(self.adj_addmenuiconsize.get_value())))
 
     def toolbar_isize(self, *args):
-        # GTK3: set_from_icon_name требует Gtk.IconSize enum, не int
         self.imgToolbar.set_from_icon_name('document-save', gtk.IconSize.LARGE_TOOLBAR)
 
     def toolbar_isize1(self, *args):
         self.adj_histiconsize.set_value(msizecomp[self.getint(self.adj_tbIconSize.get_value())])
 
     def menu_isize(self, *args):
-        # GTK3: set_from_icon_name требует Gtk.IconSize enum, не int
         self.imgMenu.set_from_icon_name('document-open', gtk.IconSize.MENU)
 
     def menu_isize1(self, *args):

@@ -5,8 +5,10 @@ nativecam (2.0b-5) UNRELEASED; urgency=medium
     contact; set package Maintainer to CNC Proton.
   * Strengthen in-app copyright, author list, and README attribution notice
     for derivative works (GPL-2).
+  * Remove AI tooling traces from .gitignore and commit messages.
+  * Strip verbose GTK/port commentary from ncam.py and pref_edit.py (no logic changes).
 
- -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 12:00:00 +0300
+ -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 14:00:00 +0300
 
 nativecam (2.0b-4) UNRELEASED; urgency=medium
 
