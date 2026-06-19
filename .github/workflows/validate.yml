@@ -1,0 +1,44 @@
+name: Validate
+
+on:
+  push:
+    branches: [devel, main, "cursor/**"]
+  pull_request:
+    branches: [devel, main]
+
+jobs:
+  static-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-lxml python3-pytest python3-pip
+          pip3 install ruff
+
+      - name: Ruff
+        run: python3 -m ruff check ncam.py lathe_polyline.py pref_edit.py restore_lcnc.py
+
+      - name: Project validation script
+        run: python3 scripts/validate_project.py
+
+      - name: Pytest
+        run: python3 -m pytest tests/ -q
+
+  deb-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debhelper dh-python python3-all devscripts fakeroot
+
+      - name: Build Debian package
+        run: debuild -us -uc -b
+
+      - name: Verify package artifact
+        run: ls -lh ../*.deb
