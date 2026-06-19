@@ -1,3 +1,11 @@
+nativecam (2.0b-6) UNRELEASED; urgency=medium
+
+  * Lathe: XZ profile OD/ID, G71/G72/G71.2/G72.2/G73 pattern, G76/G33 threading,
+    grooves, radius ID, probe, A/C corners on profile segments.
+  * Add lathe_polyline.py module; ship lathe lib/*.ngc and cfg updates.
+
+ -- CNC Proton <info@cnc-proton.com>  Fri, 19 Jun 2026 15:00:00 +0300
+
 nativecam (2.0b-5) UNRELEASED; urgency=medium
 
   * GTK3 embed: defer widget realize in GladeVCP; isolate addVBox from host
