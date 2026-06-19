@@ -6,13 +6,22 @@ PROFILE_DATA_ANCHOR = 70
 STRATEGY_PROFILE_SHIFT = 0
 STRATEGY_G71_CONTOUR = 71
 STRATEGY_G72_FACE = 72
+STRATEGY_G71_POCKET = 712
+STRATEGY_G72_POCKET = 722
+STRATEGY_G73_PATTERN = 73
 
 CFG_MANIFEST = (
     'lathe/xz_profile.cfg',
+    'lathe/xz_profile_id.cfg',
     'lathe/xz_line.cfg',
     'lathe/xz_polar.cfg',
     'lathe/xz_arc_ik.cfg',
     'lathe/xz_arc_end.cfg',
+    'lathe/radius_id.cfg',
+    'lathe/od_groove.cfg',
+    'lathe/id_groove.cfg',
+    'lathe/face_groove.cfg',
+    'lathe/lathe_probe.cfg',
 )
 
 NGC_MANIFEST = (
@@ -25,8 +34,17 @@ NGC_MANIFEST = (
     'lathe_path_walk.ngc',
     'lathe_xz_move.ngc',
     'lathe_rough_step.ngc',
+    'lathe_rough_step_id.ngc',
+    'lathe_rough_pattern.ngc',
+    'lathe_rough_pattern_id.ngc',
     'lathe_approach.ngc',
     'lathe_depart.ngc',
+    'lathe_poly_create.ngc',
+    'lathe_poly_add_data.ngc',
+    'radius_id.ngc',
+    'od_groove.ngc',
+    'id_groove.ngc',
+    'face_groove.ngc',
 )
 
 

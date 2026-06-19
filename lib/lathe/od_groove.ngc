@@ -1,0 +1,45 @@
+o<od_groove> sub
+(CALL [od_diameter] [ref_z] [first_z] [width] [depth] [spacing] [count] [spring])
+
+	#<od_rad>  = [#1 / 2 * #<_diameter_mode>]
+	#<ref_z>   = #2
+	#<first_z> = #3
+	#<width>   = #4
+	#<depth>   = [#5 * #<_diameter_mode>]
+	#<spacing> = #6
+	#<count>   = #7
+	#<spring>  = #8
+	#<cut_rad> = [#<od_rad> - #<depth>]
+
+	G0 X[#<_wp_dia_od> + #<_x_rapid>]
+	M#<_cooling_mode>
+
+	#<z#ID> = #<first_z>
+	o<#self_id_loop> repeat [#<count>]
+		o<#self_id_rough> if [#<_tool_usage> LE 1]
+			F#<_rough_feed>
+			G0 Z#<z#ID>
+			G0 X#<od_rad>
+			G1 X#<cut_rad>
+			G1 Z[#<z#ID> - #<width>]
+			G0 X[#<_wp_dia_od> + #<_x_rapid>]
+		o<#self_id_rough> endif
+
+		o<#self_id_fin> if [[#<_tool_usage> NE 1] AND [#<spring> GT 0]]
+			F#<_finish_feed>
+			o<#self_id_spr> repeat [#<spring>]
+				G0 Z#<z#ID>
+				G0 X#<od_rad>
+				G1 X#<cut_rad>
+				G1 Z[#<z#ID> - #<width>]
+				G0 X[#<_wp_dia_od> + #<_x_rapid>]
+			o<#self_id_spr> endrepeat
+		o<#self_id_fin> endif
+
+		#<z#ID> = [#<z#ID> + #<spacing>]
+	o<#self_id_loop> endrepeat
+
+	M9
+	G0 X[#<_wp_dia_od> + #<_x_rapid>]
+
+o<od_groove> endsub

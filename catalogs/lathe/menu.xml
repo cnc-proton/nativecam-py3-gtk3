@@ -15,8 +15,12 @@
 			<menuitem action='taper_ida'  name=_("Taper IDA")_ tool_tip= _("Internal taper by angle and diameters")_ icon="taper-ida.png" src="lathe/taper_ida.cfg"/>
 			<menuitem action='taper_idl'  name=_("Taper IDL")_ tool_tip= _("Internal taper by length and diameters")_ icon="taper-idl.png" src="lathe/taper_idl.cfg"/>
 			<menuitem action='radius_od'  name=_("Radius OD")_ tool_tip= _("Finish with an external radius")_ icon="corner-radius.png" src="lathe/radius_od.cfg"/>
-			<menu action='xz_prof'  name=_("XZ Profile")_ icon="polyline.png">
-				<menuitem action='xz_start'  name=_("Open Profile")_ tool_tip=_("Begin a turning contour in XZ")_ icon="polyline.png" src="lathe/xz_profile.cfg"/>
+			<menuitem action='radius_id'  name=_("Radius ID")_ tool_tip= _("Finish with an internal bore radius")_ icon="corner-radius.png" src="lathe/radius_id.cfg"/>
+			<menuitem action='od_groove'  name=_("OD Groove")_ tool_tip= _("External axial grooves")_ icon="parting.png" src="lathe/od_groove.cfg"/>
+			<menuitem action='id_groove'  name=_("ID Groove")_ tool_tip= _("Internal axial grooves")_ icon="lathe-surface-id.png" src="lathe/id_groove.cfg"/>
+			<menuitem action='face_groove'  name=_("Face Groove")_ tool_tip= _("Radial grooves on the end face")_ icon="lathe-facing.png" src="lathe/face_groove.cfg"/>
+			<menu action='xz_prof'  name=_("XZ Profile OD")_ icon="polyline.png">
+				<menuitem action='xz_start'  name=_("Open Profile")_ tool_tip=_("Begin an external turning contour in XZ")_ icon="polyline.png" src="lathe/xz_profile.cfg"/>
 				<separator/>
 				<menuitem action='xz_line'  name=_("Line")_ tool_tip=_("Line to diameter and Z")_ icon="line-to.png" src="lathe/xz_line.cfg"/>
 				<menuitem action='xz_polar'  name=_("Polar Line")_ tool_tip=_("Polar segment from Z axis")_ icon="line-polar.png" src="lathe/xz_polar.cfg"/>
@@ -24,8 +28,18 @@
 				<menuitem action='xz_arc_ik'  name=_("Arc I,K")_ tool_tip=_("Arc with center offsets")_ icon="arc-to-ij.png" src="lathe/xz_arc_ik.cfg"/>
 				<menuitem action='xz_arc_end'  name=_("Arc To Point")_ tool_tip=_("Arc ending at XZ coordinates")_ icon="arc-to-coords.png" src="lathe/xz_arc_end.cfg"/>
 			</menu>
+			<menu action='xz_prof_id'  name=_("XZ Profile ID")_ icon="polyline.png">
+				<menuitem action='xz_id_start'  name=_("Open Bore Profile")_ tool_tip=_("Begin an internal turning contour in XZ")_ icon="polyline.png" src="lathe/xz_profile_id.cfg"/>
+				<separator/>
+				<menuitem action='xz_id_line'  name=_("Line")_ tool_tip=_("Line to diameter and Z")_ icon="line-to.png" src="lathe/xz_line.cfg"/>
+				<menuitem action='xz_id_polar'  name=_("Polar Line")_ tool_tip=_("Polar segment from Z axis")_ icon="line-polar.png" src="lathe/xz_polar.cfg"/>
+				<separator/>
+				<menuitem action='xz_id_arc_ik'  name=_("Arc I,K")_ tool_tip=_("Arc with center offsets")_ icon="arc-to-ij.png" src="lathe/xz_arc_ik.cfg"/>
+				<menuitem action='xz_id_arc_end'  name=_("Arc To Point")_ tool_tip=_("Arc ending at XZ coordinates")_ icon="arc-to-coords.png" src="lathe/xz_arc_end.cfg"/>
+			</menu>
 		</menu>
 		<menu action='misc'  name=_('Miscellaneous')_ icon='misc.png'>
+			<menuitem action='lathe_probe' name=_('Lathe Probe')_ tool_tip=_('G38.2 touch probe on X or Z')_ icon="probe-edge.png" src="lathe/lathe_probe.cfg"/>
 			<menuitem action='group_std' name=_('Standard Group')_ tool_tip=_('Group subroutines')_ icon="group.png" src="group.cfg"/>
 			<menuitem action='gcode_file'  name=_('Insert a G Code File')_ tool_tip= _('Include a custom gcode file')_ icon="file-gcode.png" src="i_gcode.cfg"/>
 			<menuitem action='gcode'  name=_('Custom G Code')_ tool_tip= _('Write custom gcode')_ icon="gcode.png" src="gcode.cfg"/>
