@@ -22,6 +22,25 @@ with **Debian 13 Trixie** and **LinuxCNC 2.9+**.
 sudo apt install ./nativecam_2.0b-5_all.deb
 ```
 
+## Clone the repository
+
+To work on the source or run NativeCAM from a checkout:
+
+```bash
+git clone https://github.com/cnc-proton/nativecam-py3-gtk3.git
+cd nativecam-py3-gtk3
+```
+
+SSH (if you have a GitHub SSH key configured):
+
+```bash
+git clone git@github.com:cnc-proton/nativecam-py3-gtk3.git
+cd nativecam-py3-gtk3
+```
+
+Installing into LinuxCNC still uses the `.deb` from Releases. Use a clone for
+development and stand-alone runs from source (`./ncam.py` or `python3 ncam.py`).
+
 ## Usage
 
 Run `ncam -h` for help and all command line options.
