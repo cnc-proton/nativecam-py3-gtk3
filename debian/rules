@@ -23,6 +23,8 @@ override_dh_install:
 		examples/ \
 		my-stuff/ \
 		ncam.py \
+		lathe_polyline.py \
+		protoncam/ \
 		ncam.ui \
 		ncam.glade \
 		ncam_pref.glade \

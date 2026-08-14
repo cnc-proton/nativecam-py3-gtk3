@@ -1,3 +1,13 @@
+nativecam (3.0a) UNRELEASED; urgency=medium
+
+  * Rebrand the official CNC Proton line as ProtonCAM (GPL notices unchanged:
+    Fernand Veilleux original NativeCAM; CNC Proton Python 3/GTK3 port).
+  * Split machine catalogs: mill4, mill5, millturn, universal alongside mill,
+    lathe, plasma.
+  * GTK3 CSS theme; 4/5-axis setup features, B-axis indexing, live-tool mill-turn.
+
+ -- CNC Proton <info@cnc-proton.com>  Fri, 14 Aug 2026 12:00:00 +0300
+
 nativecam (2.0b-5) UNRELEASED; urgency=medium
 
   * GTK3 embed: defer widget realize in GladeVCP; isolate addVBox from host

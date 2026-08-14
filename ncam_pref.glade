@@ -360,7 +360,7 @@
   <object class="GtkDialog" id="prefdlg">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="title" translatable="yes">NativeCAM Preferences</property>
+    <property name="title" translatable="yes">ProtonCAM Preferences</property>
     <property name="window_position">center-on-parent</property>
     <property name="destroy_with_parent">True</property>
     <property name="type_hint">dialog</property>

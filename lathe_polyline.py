@@ -1,4 +1,4 @@
-# Lathe XZ profile editor — CNC Proton extension for NativeCAM.
+# Lathe XZ profile editor — CNC Proton / ProtonCAM extension.
 # Keeps bootstrap NGC variables and catalog metadata out of ncam.py.
 
 PROFILE_DATA_ANCHOR = 70

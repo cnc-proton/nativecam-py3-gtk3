@@ -12,7 +12,8 @@ Depends: python3, python3-lxml, python3-gi, gir1.2-gtk-3.0, python3-tk, ${misc:D
 Conflicts: nativecam (<< 2.0b)
 Recommends: linuxcnc | linuxcnc-uspace, truetype-tracer, python3-qrcode
 Architecture: all
-Description: Conversational programming for LinuxCNC
+Description: ProtonCAM conversational programming for LinuxCNC
+ Official CNC Proton Python 3 / GTK3 line, based on NativeCAM.
  Requires LinuxCNC with support for auxiliary examples
  and auxiliary gladevcp applications.
  To check for availability, run the script:

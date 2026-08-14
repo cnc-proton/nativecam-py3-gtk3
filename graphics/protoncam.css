@@ -1,0 +1,28 @@
+/* ProtonCAM GTK3 theme — loaded by protoncam.ui.gtk3_theme */
+treeview {
+    font-size: 11pt;
+}
+
+treeview:selected {
+    background-color: #2b6cb0;
+    color: #ffffff;
+}
+
+toolbar {
+    padding: 4px;
+    background-color: #f4f6f8;
+}
+
+button {
+    padding: 4px 8px;
+}
+
+entry, spinbutton {
+    min-height: 1.6em;
+}
+
+paned separator {
+    background-color: #cbd5e0;
+    min-width: 6px;
+    min-height: 6px;
+}

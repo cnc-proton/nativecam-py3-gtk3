@@ -1,7 +1,7 @@
-NativeCAM
-=========
+ProtonCAM / NativeCAM
+=====================
 
-Original author:
+Original NativeCAM author:
   Fernand Veilleux <fernveilleux@gmail.com>
 
 Based on LinuxCNC-Features by:
@@ -11,5 +11,8 @@ Contributors:
   Meison Kim, Alexander Wigen, Konstantin Navrockiy, Mit Zot,
   Dewey Garrett, Karl Jacobs, Philip Mullen
 
-Python 3 / GTK3 port and Side Drill feature:
+Python 3 / GTK3 port, Side Drill, and ProtonCAM:
   CNC Proton <info@cnc-proton.com>
+
+Official repository:
+  https://github.com/cnc-proton/nativecam-py3-gtk3

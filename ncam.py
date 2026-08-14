@@ -30,6 +30,21 @@ import locale
 import platform
 import pref_edit
 import lathe_polyline
+from protoncam.identity import (
+    APP_AUTHORS,
+    APP_COPYRIGHT,
+    APP_VERSION,
+    DONATE_URL,
+    GITHUB_LABEL,
+    HOME_PAGE,
+    PRODUCT_NAME,
+)
+from protoncam.machines import (
+    DEFAULT_CATALOG,
+    VALID_CATALOGS,
+    catalog_from_embed_command,
+)
+from protoncam.ui import apply_gtk3_theme
 import tkinter as Tkinter
 import math
 import contextlib
@@ -40,7 +55,7 @@ try:
     if _display and not _display.get_name().lower().startswith('x11') \
             and not _display.get_name().lower().startswith('display'):
         if 'wayland' in _display.get_name().lower():
-            print("Warning: NativeCAM embedding (XEMBED) requires X11. "
+            print("Warning: ProtonCAM embedding (XEMBED) requires X11. "
                   "Wayland detected ('%s')." % _display.get_name())
 except Exception:
     pass
@@ -52,16 +67,7 @@ warnings.filterwarnings(
 
 SYS_DIR = os.path.dirname(os.path.realpath(__file__))
 
-APP_COPYRIGHT = '''Copyright © 2017 Fernand Veilleux : fernveilleux@gmail.com
-Copyright © 2012 Nick Drobchenko aka Nick from cnc-club.ru
-Copyright © 2026 CNC Proton (Python 3 / GTK3 Port)'''
-APP_AUTHORS = ['Fernand Veilleux (original author)',
-               'Nick Drobchenko (initiator)',
-               'Meison Kim', 'Alexander Wigen', 'Konstantin Navrockiy', 'Mit Zot',
-               'Dewey Garrett', 'Karl Jacobs', 'Philip Mullen',
-               'CNC Proton (Python 3 / GTK3 port, Side Drill)']
-
-APP_VERSION = "2.0b"
+# Identity lives in protoncam.identity (GPL notices: FernV + CNC Proton).
 
 # GTK3 + deprecated GtkAction: create_menu_item() triggers harmless Gtk-CRITICAL in C
 # (gtk_accel_label_set_accel_closure). Filter that line only; other CRITICALs still log.
@@ -136,16 +142,15 @@ try :
 except Exception:
     gettext.install(APP_NAME, None)
 
-APP_TITLE = _("NativeCAM for LinuxCNC")
-APP_COMMENTS = _('A GUI to help create LinuxCNC NGC files.')
+APP_TITLE = _("ProtonCAM for LinuxCNC")
+APP_COMMENTS = _('Conversational CAM for mill, lathe, plasma, 4/5-axis and mill-turn.')
 APP_LICENCE = _('''This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n
 It is recommended you use the deb package
 ''')
 
-VALID_CATALOGS = ['mill', 'plasma', 'lathe']
-DEFAULT_CATALOG = "mill"
+# VALID_CATALOGS / DEFAULT_CATALOG imported from protoncam.machines
 
 # directories
 CFG_DIR = 'cfg'
@@ -181,9 +186,6 @@ NO_ICON_TYPES = ['sub-header', 'header']
 GROUP_HEADER_TYPES = ['items', 'sub-header', 'header']
 
 XML_TAG = "lcnc-ncam"
-
-HOME_PAGE = 'https://github.com/cnc-proton/nativecam-py3-gtk3'
-DONATE_URL = 'https://github.com/sponsors/cnc-proton'
 
 class tv_select :  # 'enum' items
     none, feature, items, header, param = list(range(5))
@@ -395,7 +397,9 @@ def translate(fstring):
         fstring += (line + '\n')
     return fstring
 
-def mess_dlg(mess, title = "NativeCAM"):
+def mess_dlg(mess, title=None):
+    if title is None:
+        title = PRODUCT_NAME
     dlg = gtk.MessageDialog(parent = None,
         modal = True,
         destroy_with_parent = True,
@@ -601,13 +605,13 @@ def require_ncam_lib(fname, ini_instance):
         print("")
 
         if not found_lib_dir :
-            err_exit (_('\nThe required NativeCAM lib directory :\n<%(lib)s>\n\n'
+            err_exit (_('\nThe required ProtonCAM lib directory :\n<%(lib)s>\n\n'
                       'is not in [RS274NGC]SUBROUTINE_PATH:\n'
                       '<%(path)s>\n\nEdit ini and correct\n'
                     % {'lib':require_lib, 'path':subroutine_path}))
 
     except Exception as detail :
-        err_exit(_('Required NativeCAM lib\n%(err_details)s') % {'err_details':detail})
+        err_exit(_('Required ProtonCAM lib\n%(err_details)s') % {'err_details':detail})
 
 def get_short_id():
     global UNIQUE_ID
@@ -625,7 +629,7 @@ def create_M_file() :
         f.write("msg1 = '%s'\n" % _('Skip block not active'))
         f.write("icon_fname = '%s'\n\n" % os.path.join(NCAM_DIR, GRAPHICS_DIR, 'skip_block.png'))
         f.write("dlg = gtk.MessageDialog(parent = None, flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT, type = gtk.MessageType.WARNING, buttons = gtk.ButtonsType.NONE, message_format = msg1)\n\n")
-        f.write("dlg.set_title('NativeCAM')\ndlg.format_secondary_markup(msg)\n\n")
+        f.write("dlg.set_title('ProtonCAM')\ndlg.format_secondary_markup(msg)\n\n")
         f.write("img = gtk.Image()\n")
         f.write("img.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(icon_fname, 80, 80))\n")
         f.write("dlg.get_message_area().pack_start(img, True, True, 0)\n\n")
@@ -2022,7 +2026,7 @@ class Feature(object):
             type = gtk.MessageType.WARNING,
             buttons = gtk.ButtonsType.NONE,
             message_format = self.get_name())
-        dlg.set_title('NativeCAM')
+        dlg.set_title(PRODUCT_NAME)
         dlg.format_secondary_text(msg)
         img = gtk.Image()
         img.set_from_pixbuf(self.get_icon(add_dlg_icon_size))
@@ -2306,7 +2310,7 @@ class Preferences(object):
             self.default = '%\n'
         else :
             self.default = ''
-        self.default += _('(*** GCode generated by NativeCAM for LinuxCNC ***)\n\n')
+        self.default += _('(*** GCode generated by ProtonCAM for LinuxCNC ***)\n\n')
         self.default += _('(*.ngc files are best viewed with Syntax Highlighting)\n')
         self.default += '(visit https://forum.linuxcnc.org/forum/20-g-code/'
         self.default +=     '30840-new-syntax-highlighting-for-gedit)\n'
@@ -2475,6 +2479,11 @@ class NCam(gtk.VBox):
 
         self.pref = Preferences()
         TOOL_TABLE = Tools()
+        apply_gtk3_theme(
+            gtk_module=gtk,
+            gdk_module=gdk,
+            css_path=os.path.join(SYS_DIR, 'graphics', 'protoncam.css'),
+        )
 
         machine_metric = True
 
@@ -2517,12 +2526,9 @@ class NCam(gtk.VBox):
                 val = ini_instance.find('DISPLAY', 'EMBED_TAB_COMMAND')
 
             if val is not None :
-                if 'mill' in val :
-                    self.catalog_dir = 'mill'
-                elif 'lathe' in val :
-                    self.catalog_dir = 'lathe'
-                elif 'plasma'in val :
-                    self.catalog_dir = 'plasma'
+                detected = catalog_from_embed_command(val)
+                if detected is not None :
+                    self.catalog_dir = detected
 
             val = ini_instance.find('DISPLAY', 'LATHE')
             if (val is not None) and val.lower() in ['1', 'true'] :
@@ -2544,7 +2550,7 @@ class NCam(gtk.VBox):
             if val is not None :
                 self.pref.has_Z_axis = ('Z' in val)
 
-        print("\nNativeCAM info:")
+        print("\n%s info:" % PRODUCT_NAME)
         print("   inifile = %s" % inifilename)
         print("  NCAM_DIR = %s" % NCAM_DIR)
         print("   SYS_DIR = %s" % SYS_DIR)
@@ -2690,7 +2696,7 @@ class NCam(gtk.VBox):
             if os.path.isdir(os.path.join(NCAM_DIR, d)) :
                 return
         msg = _('Create Standalone Directory :\n\n%(dir)s\n\nContinue?') % {'dir':NCAM_DIR}
-        if not mess_yesno(msg, title = _("NativeCAM CREATE")) :
+        if not mess_yesno(msg, title = _("ProtonCAM CREATE")) :
             sys.exit(0)
 
     def update_user_tree(self, fromdirs, todir):
@@ -4490,7 +4496,7 @@ class NCam(gtk.VBox):
         old_name = self.selected_feature.get_attr('name')
         self.newnamedlg.set_markup(_('Enter new name for'))
         self.newnamedlg.format_secondary_markup(old_name)
-        self.newnamedlg.set_title('NativeCAM')
+        self.newnamedlg.set_title(PRODUCT_NAME)
         edit_entry = gtk.Entry()
         edit_entry.set_editable(True)
         edit_entry.set_text(old_name)
@@ -4728,7 +4734,7 @@ class NCam(gtk.VBox):
         self.set_do_buttons_state()
 
     def action_about(self, *arg):
-        dlg = gtk.Dialog(title=_('About NativeCAM'),
+        dlg = gtk.Dialog(title=_('About ProtonCAM'),
                          transient_for=self.get_toplevel(),
                          modal=True)
         dlg.set_resizable(False)
@@ -4752,7 +4758,7 @@ class NCam(gtk.VBox):
 
         vbox_title = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=2)
         lbl_title = gtk.Label()
-        lbl_title.set_markup('<b><big>NativeCAM for LinuxCNC</big></b>')
+        lbl_title.set_markup('<b><big>ProtonCAM for LinuxCNC</big></b>')
         lbl_ver = gtk.Label(label=_('Version: ') + version_str)
         lbl_comment = gtk.Label(label=APP_COMMENTS)
         vbox_title.pack_start(lbl_title, False, False, 0)
@@ -4809,7 +4815,7 @@ class NCam(gtk.VBox):
         lbl_gh.set_markup('<b>GitHub:</b>')
         lbl_gh.set_halign(gtk.Align.START)
         vbox_links.pack_start(lbl_gh, False, False, 0)
-        btn_github = gtk.LinkButton.new_with_label(HOME_PAGE, 'cnc-proton/nativecam-py3-gtk3')
+        btn_github = gtk.LinkButton.new_with_label(HOME_PAGE, GITHUB_LABEL)
         btn_github.set_halign(gtk.Align.START)
         vbox_links.pack_start(btn_github, False, False, 0)
 
@@ -5198,7 +5204,7 @@ class NCam(gtk.VBox):
                 gtk.ResponseType.CANCEL, 'gtk-ok', gtk.ResponseType.OK))
         try:
             filt = gtk.FileFilter()
-            filt.set_name(_("NativeCAM projects"))
+            filt.set_name(_("ProtonCAM projects"))
             filt.add_mime_type("text/xml")
             filt.add_pattern("*.xml")
             filechooserdialog.add_filter(filt)
@@ -5303,7 +5309,7 @@ class NCam(gtk.VBox):
                 gtk.ResponseType.CANCEL, 'gtk-ok', gtk.ResponseType.OK))
         try:
             filt = gtk.FileFilter()
-            filt.set_name(_("NativeCAM projects"))
+            filt.set_name(_("ProtonCAM projects"))
             filt.add_mime_type("text/xml")
             filt.add_pattern("*.xml")
             filechooserdialog.add_filter(filt)
@@ -5335,11 +5341,11 @@ class NCam(gtk.VBox):
 
         if arg[1][0] == 0 :  # user project
             dlg_title = _("Open project")
-            flt_name = _("NativeCAM projects")
+            flt_name = _("ProtonCAM projects")
             dir_ = os.path.join(NCAM_DIR, CATALOGS_DIR, self.catalog_dir, PROJECTS_DIR)
         else :  # example
             dlg_title = _("Open example project")
-            flt_name = _("NativeCAM example projects")
+            flt_name = _("ProtonCAM example projects")
             dir_ = os.path.join(NCAM_DIR, CATALOGS_DIR, self.catalog_dir, PROJECTS_DIR, EXAMPLES_DIR)
 
         filechooserdialog = gtk.FileChooserDialog(dlg_title, None,
@@ -5432,7 +5438,7 @@ class NCam(gtk.VBox):
 
 def verify_ini(fname, ctlog, in_tab) :
     path2ui = os.path.join(SYS_DIR, 'ncam.ui')
-    req = '# required NativeCAM item :\n'
+    req = '# required ProtonCAM item :\n'
 
     with open(fname, 'r') as b :
         txt = b.read()
@@ -5481,7 +5487,7 @@ def verify_ini(fname, ctlog, in_tab) :
 
             if dp == 'axis' :
                 if in_tab :
-                    newstr = '%s%s%s%s %s\n' % (req, 'EMBED_TAB_NAME = NativeCAM\n', \
+                    newstr = '%s%s%s%s %s\n' % (req, 'EMBED_TAB_NAME = ProtonCAM\n', \
                             'EMBED_TAB_COMMAND = gladevcp -x {XID} -U --catalog=', \
                             ctlog, path2ui)
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
@@ -5495,7 +5501,7 @@ def verify_ini(fname, ctlog, in_tab) :
 
             elif (dp == 'gmoccapy') :
                 if in_tab :
-                    newstr = '%s%s%s%s%s %s\n' % (req, 'EMBED_TAB_NAME = NativeCAM\n', \
+                    newstr = '%s%s%s%s%s %s\n' % (req, 'EMBED_TAB_NAME = ProtonCAM\n', \
                             'EMBED_TAB_LOCATION = ntb_user_tabs\n', \
                             'EMBED_TAB_COMMAND = gladevcp -x {XID} -U --catalog=', \
                             ctlog, path2ui)
@@ -5537,7 +5543,7 @@ def verify_ini(fname, ctlog, in_tab) :
                 except Exception:
                     txt = re.sub(r"\[DISPLAY\]", "[DISPLAY]\n" + newstr, txt)
 
-                newstr = '%sEMBED_TAB_NAME = NativeCAM\n' % req
+                newstr = '%sEMBED_TAB_NAME = ProtonCAM\n' % req
                 try :
                     oldstr = 'EMBED_TAB_NAME = %s' % parser.get('DISPLAY', 'embed_tab_name')
                     txt = re.sub(re.escape(oldstr), newstr, txt, count=1)
@@ -5582,10 +5588,11 @@ Standalone Usage:
 Options :
     -h | --help                this text
    (-i | --ini=) inifilename   inifile used
-   (-c | --catalog=) catalog   valid catalogs = mill, plasma, lathe
-    -t | --tab                 axis and gmoccapy only, put NativeCAM in a new tab
+   (-c | --catalog=) catalog   valid catalogs = mill, mill4, mill5, lathe,
+                               millturn, plasma, universal
+    -t | --tab                 axis and gmoccapy only, put ProtonCAM in a new tab
 
-To prepare your inifile to use NativeCAM embedded,
+To prepare your inifile to use ProtonCAM embedded,
    a) Start in a working directory with your LinuxCNC configuration ini file
    b) Type this command :
      ncam (-i | --ini=)inifilename (-c | --catalog=)(valid catalog for this configuration)
