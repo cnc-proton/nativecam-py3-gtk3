@@ -1,0 +1,26 @@
+Project title: NativeCAM — reproducible build and validation pipeline for open-source CAM
+
+Requested amount: €6,000
+Duration: 4 weeks (130 hours)
+Applicant: [Your full name], individual, Lithuania (EU)
+
+---
+
+Abstract (use ONLY if Restack proposal is rejected — do not submit both in parallel):
+
+NativeCAM is a GPL conversational CAM tool for LinuxCNC (github.com/cnc-proton/nativecam-py3-gtk3). Supply-chain assurance for manufacturing software is rarely addressed in open source: there is no automated check that feature configs, NGC subroutines, and Debian packages stay consistent across releases.
+
+This project delivers a reproducible validation pipeline: static analysis (ruff), structural checks (scripts/validate_project.py), pytest suite with LinuxCNC mocks, GitHub Actions workflow building installable .deb packages, and VALIDATION.md documenting how contributors verify changes without a physical machine. The pipeline covers lathe XZ profiles, Side Drill, and example projects.
+
+Deliverables are fully open (GPL), runnable on standard Debian 13 CI runners, and produce auditable build artifacts — aligning with CodeSupply goals for transparent, verifiable open-source supply chains in critical infrastructure software.
+
+This is phase 1 of a 4-phase roadmap (~€65k); phase 2 adds golden-file tests for multi-controller G-code export.
+
+European dimension: EU workshops and integrators can trust NativeCAM releases through reproducible CI rather than manual testing alone.
+
+Milestones:
+  M1 (30%): CI workflow + pytest green on every push
+  M2 (40%): validate_project.py extended for lathe/side-drill configs
+  M3 (30%): VALIDATION.md + tagged release 2.0b-6 with .deb artifact
+
+Attachment: phase1/attachment-nativecam-phase1.pdf (same budget; roadmap angle differs in abstract only).

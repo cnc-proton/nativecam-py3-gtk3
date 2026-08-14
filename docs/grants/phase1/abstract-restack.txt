@@ -1,0 +1,28 @@
+Project title: NativeCAM — verified open-source CAM baseline for EU workshops
+
+Requested amount: €6,000
+Duration: 4 weeks (130 hours)
+Applicant: [Your full name], individual, Lithuania (EU)
+
+---
+
+Abstract (paste into NLnet Restack proposal form):
+
+NativeCAM is a GPL-licensed conversational CAM application for LinuxCNC, maintained by CNC Proton. It lets small EU machine shops define milling, plasma, and lathe operations through a GTK GUI instead of proprietary CAM software. Recent community work added lathe XZ profiles (G71/G72/G73), horizontal Side Drill, and a validation harness (GitHub PR #6), but these features lack systematic regression testing, CI packaging, and release documentation.
+
+This project stabilises that baseline: green CI (pytest, ruff, Debian package build), validated lathe XZ and Side Drill examples, 4th-axis demo sanity checks, and a VALIDATION.md guide for contributors and workshop users. All deliverables remain GPL and run on Debian 13 / LinuxCNC 2.9+ without cloud dependencies.
+
+This is phase 1 of a 4-phase roadmap (~€65k total); later phases add controller-independent G-code (operation IR) and Siemens ISO export — not in this contract.
+
+European dimension: NativeCAM reduces vendor lock-in for CNC tooling. Workshops in Lithuania and across the EU can audit, modify, and share CAM workflows as open commons rather than depending on closed post-processors.
+
+Prior work: Python 3 / GTK3 port (2024–2026), lathe cycle integration on branch devel, validation suite at github.com/cnc-proton/nativecam-py3-gtk3.
+
+License: GPL (existing). All new code and docs under the same license.
+
+Milestones (payment structure):
+  M1 (30%, €1,800): CI green — GitHub Actions, pytest, .deb build
+  M2 (40%, €2,400): Lathe XZ smoke tests + Side Drill validation
+  M3 (30%, €1,800): VALIDATION.md, release 2.0b-6, 4th-axis sanity
+
+Attachment: see phase1/attachment-nativecam-phase1.pdf (budget table + 4-phase roadmap overview).
