@@ -414,7 +414,7 @@ def mess_yesno(mess, title = ""):
 def mess_with_buttons(mess, buttons, title = ""):
     mwb = gtk.Dialog(parent = None,
                      buttons = buttons,
-                     flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
+                     modal = True, destroy_with_parent = True,
           )
     mwb.set_title(title)
     finbox = mwb.get_content_area()
@@ -519,11 +519,12 @@ def err_exit(errtxt):
     mess_dlg(errtxt)
     sys.exit(1)
 
+linuxcnc = None
 if platform.system() != 'Windows' :
     try :
         import linuxcnc
     except ImportError as detail :
-        err_exit(detail)
+        print('NativeCAM: LinuxCNC Python module unavailable; standalone export only (%s)' % detail, file=sys.stderr)
 
 # One hidden Tk for Tcl "send" to Axis. A fresh Tk() on every auto-refresh makes Tk set
 # XSetErrorHandler while GDK may have an error trap pushed → Gdk-WARNING (GladeVCP + GTK3).
@@ -624,7 +625,7 @@ def create_M_file() :
         f.write("msg = '%s'\n" % _('Stop LinuxCNC program,&#10;toggle the shown button,&#10;then restart'))
         f.write("msg1 = '%s'\n" % _('Skip block not active'))
         f.write("icon_fname = '%s'\n\n" % os.path.join(NCAM_DIR, GRAPHICS_DIR, 'skip_block.png'))
-        f.write("dlg = gtk.MessageDialog(parent = None, flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT, type = gtk.MessageType.WARNING, buttons = gtk.ButtonsType.NONE, message_format = msg1)\n\n")
+        f.write("dlg = gtk.MessageDialog(parent = None, modal = True, destroy_with_parent = True, type = gtk.MessageType.WARNING, buttons = gtk.ButtonsType.NONE, message_format = msg1)\n\n")
         f.write("dlg.set_title('NativeCAM')\ndlg.format_secondary_markup(msg)\n\n")
         f.write("img = gtk.Image()\n")
         f.write("img.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_size(icon_fname, 80, 80))\n")
@@ -704,7 +705,7 @@ class Tools(object):
 class VKB(object):
 
     def __init__(self, toplevel, tooltip, min_value, max_value, data_type, convertible) :
-        self.dlg = gtk.Dialog(parent=toplevel, flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
+        self.dlg = gtk.Dialog(parent=toplevel, destroy_with_parent=True)
         self.dlg.set_decorated(False)
         self.dlg.set_border_width(3)
         self.dlg.set_property("skip-taskbar-hint", True)
@@ -1177,7 +1178,7 @@ class CellRendererMx(gtk.CellRendererText):
 
     def edit_list(self, time_out = 0.05):
         self.list_window = gtk.Dialog(parent=self.tv.get_toplevel(),
-                                      flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
+                                      destroy_with_parent=True)
         self.list_window.set_border_width(0)
         self.list_window.set_decorated(False)
         self.list_window.set_property("skip-taskbar-hint", True)
@@ -1202,7 +1203,7 @@ class CellRendererMx(gtk.CellRendererText):
                 active_row = count
             count += 1
 
-        ls_view = gtk.TreeView(ls)
+        ls_view = gtk.TreeView.new_with_model(ls)
         ls_view.set_headers_visible(False)
         tvcolumn = gtk.TreeViewColumn('Column 0')
         ls_view.append_column(tvcolumn)
@@ -1249,7 +1250,7 @@ class CellRendererMx(gtk.CellRendererText):
 
     def edit_string(self, time_out = 0.05):
         self.stringedit_window = gtk.Dialog(parent=self.tv.get_toplevel(),
-                                            flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
+                                             destroy_with_parent=True)
         self.stringedit_window.hide()
         self.stringedit_window.set_decorated(False)
         self.stringedit_window.set_border_width(0)
@@ -1395,7 +1396,7 @@ class CellRendererMx(gtk.CellRendererText):
             self.treestore, self.treeiter = self.selection.get_selected()
 
             self.textedit_window = gtk.Dialog(parent=treeview.get_toplevel(),
-                                              flags=gtk.DialogFlags.DESTROY_WITH_PARENT)
+                                              destroy_with_parent=True)
             self.textedit_window.set_decorated(False)
             self.textedit_window.set_property("skip-taskbar-hint", True)
 
@@ -2018,7 +2019,8 @@ class Feature(object):
 
         # create dialog with image and checkbox
         dlg = gtk.MessageDialog(parent = None,
-            flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
+            modal = True,
+            destroy_with_parent=True,
             type = gtk.MessageType.WARNING,
             buttons = gtk.ButtonsType.NONE,
             message_format = self.get_name())
@@ -2490,6 +2492,9 @@ class NCam(gtk.VBox):
             ini = optlist["--ini"]
 
         no_ini = ini is None
+
+        if linuxcnc is None and (not NCAM_STANDALONE or not no_ini):
+            err_exit(_('The LinuxCNC Python module is required for embedded mode or an INI configuration.'))
 
         if no_ini :
             # standalone with no --ini:
@@ -3148,6 +3153,7 @@ class NCam(gtk.VBox):
     def _autorefresh_toggled(self, action):
         if not action.get_active():
             self._cancel_autorefresh_timer()
+            return
         self.autorefresh_call()
 
     def _prime_accel_for_window(self, w):
@@ -3676,6 +3682,7 @@ class NCam(gtk.VBox):
 
         self.actionAutoRefresh = gtk.ToggleAction(name="AutoRefresh", label=_("Auto-refresh"), tooltip=_('Auto-refresh LinuxCNC'))
         self.actionAutoRefresh.set_active(False)
+        self.actionAutoRefresh.set_sensitive(linuxcnc is not None)
         self.action_group.add_action(self.actionAutoRefresh)
 
         self.actionChUnits = ca("ChUnits", None, _("Change Units"), None, _(""), self.action_chUnits)
@@ -3753,7 +3760,7 @@ class NCam(gtk.VBox):
         self.actionSideSide.set_active(self.pref.side_by_side)
         self.actionSingleView.set_active(not self.pref.use_dual_views)
         self.actionDualView.set_active(self.pref.use_dual_views)
-        self.actionAutoRefresh.set_active(self.pref.autorefresh)
+        self.actionAutoRefresh.set_active(linuxcnc is not None and self.pref.autorefresh)
 
         self.actionCurrent.set_visible(not self.pref.autosave)
         self.name_cell.set_property('ellipsize', self.pref.name_ellipsis)
@@ -4483,7 +4490,8 @@ class NCam(gtk.VBox):
 
     def action_renameF(self, *arg):
         self.newnamedlg = gtk.MessageDialog(parent = None,
-            flags = gtk.DialogFlags.MODAL | gtk.DialogFlags.DESTROY_WITH_PARENT,
+            modal = True, 
+            destroy_with_parent = True,
             type = gtk.MessageType.QUESTION,
             buttons = gtk.ButtonsType.OK_CANCEL
         )
@@ -4598,6 +4606,9 @@ class NCam(gtk.VBox):
         fname = os.path.join(NGC_DIR, GENERATED_FILE)
         with open(fname, "w") as f:
             f.write(self.to_gcode())
+
+        if linuxcnc is None:
+            return False
 
         try:
             linuxCNC = linuxcnc.command()
@@ -5342,9 +5353,15 @@ class NCam(gtk.VBox):
             flt_name = _("NativeCAM example projects")
             dir_ = os.path.join(NCAM_DIR, CATALOGS_DIR, self.catalog_dir, PROJECTS_DIR, EXAMPLES_DIR)
 
-        filechooserdialog = gtk.FileChooserDialog(dlg_title, None,
-                gtk.FileChooserAction.OPEN, ('gtk-cancel', \
-                gtk.ResponseType.CANCEL, 'gtk-ok', gtk.ResponseType.OK))
+        filechooserdialog = gtk.FileChooserDialog(
+                title = dlg_title, 
+                parent = None,
+                action = gtk.FileChooserAction.OPEN,
+        )
+        filechooserdialog.add_buttons(
+                'gtk-cancel', gtk.ResponseType.CANCEL, 
+                'gtk-ok', gtk.ResponseType.OK
+        )
         try:
             filt = gtk.FileFilter()
             filt.set_name(flt_name)
@@ -5622,6 +5639,8 @@ if __name__ == "__main__":
         ini = None
 
     if (ini is not None) :
+        if linuxcnc is None:
+            err_exit(_('The LinuxCNC Python module is required for an INI configuration.'))
         if "-c" in optlist :
             catalog = optlist["-c"]
         elif "--catalog" in optlist :

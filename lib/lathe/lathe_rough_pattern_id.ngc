@@ -1,0 +1,51 @@
+o<lathe_rough_pattern_id> sub
+(CNC Proton — G73-style pattern repeat on internal bore profiles)
+(#1 anchor, #2 start radius, #3 finish radius, #4 W step Z, #5 U step radius, #6 pass count)
+
+	#<anchor>   = #1
+	#<r_start>  = #2
+	#<r_finish> = #3
+	#<w_step>   = #4
+	#<u_step>   = #5
+	#<passes>   = #6
+	#<saved_cs> = [#<_coord_system> / 10]
+
+	o<lrpi_auto> if [#<passes> LE 0]
+		o<lrpi_u> if [#<u_step> LE 0]
+			#<u_step> = #<_rough_cut>
+		o<lrpi_u> endif
+		#<passes> = FUP[ABS[#<r_finish> - #<r_start>] / #<u_step>]
+	o<lrpi_auto> endif
+
+	o<lrpi_one> if [#<passes> LT 1]
+		#<passes> = 1
+	o<lrpi_one> endif
+
+	G18
+	o<get_offsets> CALL
+	#<ox> = #<_offsets_x>
+	#<oz> = #<_offsets_z>
+	#<or> = #<_offsets_r>
+
+	G#<_off_rot_coord_system>
+	o<rotate_xy> CALL [#<_offsets_z>] [#<_offsets_x>] [#<_offsets_z>] [#<_offsets_x>] [#<_offsets_r>]
+
+	o<set_feed_rate_and_speed> CALL [100]
+
+	#<pass> = 1
+	o<lrpi_loop> while [#<pass> LE #<passes>]
+		#<x_shift> = [[#<r_finish> - #<r_start> - [#<pass> - 1] * #<u_step>] * #<_diameter_mode>]
+		#<z_shift> = [[#<pass> - 1] * #<w_step>]
+		G10 L2 P#5220 X[#<_rotated_y> + #<x_shift>] Z[#<_rotated_x> + #<z_shift>] R#<_offsets_r>
+
+		o<lathe_path_walk> CALL [#<anchor>] [0] [1]
+
+		#<pass> = [#<pass> + 1]
+	o<lrpi_loop> endwhile
+
+	G0 X[#<_wp_dia_id> - #<_ix_clear>]
+	G40
+	G#<saved_cs>
+	G10 L2 P#5220 X#<ox> Z#<oz> R#<or>
+
+o<lathe_rough_pattern_id> endsub

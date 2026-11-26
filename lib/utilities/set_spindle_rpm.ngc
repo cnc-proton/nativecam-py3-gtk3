@@ -1,10 +1,19 @@
 o<set_spindle_rpm> sub
 (author : Fernand Veilleux)
 (CALL #1 = spindle speed, #2 = feed)
+    (Capture commanded spindle state before issuing M3/M4.)
     #20 = #<_rpm>
-    M#<_spindle_dir> S#1 M#<_cooling_mode>
-    o11 if [#1 GT #20]
-        G4 P#<_spindle_speed_up_delay>
+    #21 = #<_spindle_on>
+    #22 = #<_spindle_cw>
+    #23 = 0
+    o11 if [[#<_spindle_dir> EQ 3] OR [#<_spindle_dir> EQ 4]]
+        o12 if [[#21 EQ 0] OR [#1 GT #20] OR [[#<_spindle_dir> EQ 3] AND [#22 EQ 0]] OR [[#<_spindle_dir> EQ 4] AND [#22 EQ 1]]]
+            #23 = 1
+        o12 endif
     o11 endif
+    M#<_spindle_dir> S#1 M#<_cooling_mode>
+    o13 if [[#23 EQ 1] AND [#<_spindle_speed_up_delay> GT 0]]
+        G4 P#<_spindle_speed_up_delay>
+    o13 endif
     F#2
 o<set_spindle_rpm> endsub
