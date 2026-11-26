@@ -8,6 +8,8 @@ o<lathe_xz_move> sub
 	#<motion> = #3
 	#<dz>     = #4
 	#<dx>     = #5
+	#<c_style> = #7
+	#<c_size>  = [#8 * #<_diameter_mode>]
 
 	o<lxm_rapid> if [#<motion> EQ 0]
 		G0 X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z>
@@ -18,7 +20,13 @@ o<lathe_xz_move> sub
 		o<lxm_feed> endif
 
 		o<lxm_line> if [#<motion> EQ 1]
-			G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z>
+			o<lxm_a> if [[#<c_style> EQ 1] AND [#<c_size> GT 0]]
+				G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z> A#<c_size>
+			o<lxm_a> elseif [[#<c_style> EQ 2] AND [#<c_size> GT 0]]
+				G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z> C#<c_size>
+			o<lxm_a> else
+				G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z>
+			o<lxm_a> endif
 		o<lxm_line> else
 			G#<motion> X[#<tgt_xr> * #<_diameter_mode>] Z#<tgt_z> I#<dx> K#<dz>
 		o<lxm_line> endif
