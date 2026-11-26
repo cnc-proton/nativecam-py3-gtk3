@@ -519,11 +519,12 @@ def err_exit(errtxt):
     mess_dlg(errtxt)
     sys.exit(1)
 
+linuxcnc = None
 if platform.system() != 'Windows' :
     try :
         import linuxcnc
     except ImportError as detail :
-        err_exit(detail)
+        print('NativeCAM: LinuxCNC Python module unavailable; standalone export only (%s)' % detail, file=sys.stderr)
 
 # One hidden Tk for Tcl "send" to Axis. A fresh Tk() on every auto-refresh makes Tk set
 # XSetErrorHandler while GDK may have an error trap pushed → Gdk-WARNING (GladeVCP + GTK3).
@@ -2491,6 +2492,9 @@ class NCam(gtk.VBox):
 
         no_ini = ini is None
 
+        if linuxcnc is None and (not NCAM_STANDALONE or not no_ini):
+            err_exit(_('The LinuxCNC Python module is required for embedded mode or an INI configuration.'))
+
         if no_ini :
             # standalone with no --ini:
             inifilename = 'NA'
@@ -3148,6 +3152,7 @@ class NCam(gtk.VBox):
     def _autorefresh_toggled(self, action):
         if not action.get_active():
             self._cancel_autorefresh_timer()
+            return
         self.autorefresh_call()
 
     def _prime_accel_for_window(self, w):
@@ -3676,6 +3681,7 @@ class NCam(gtk.VBox):
 
         self.actionAutoRefresh = gtk.ToggleAction(name="AutoRefresh", label=_("Auto-refresh"), tooltip=_('Auto-refresh LinuxCNC'))
         self.actionAutoRefresh.set_active(False)
+        self.actionAutoRefresh.set_sensitive(linuxcnc is not None)
         self.action_group.add_action(self.actionAutoRefresh)
 
         self.actionChUnits = ca("ChUnits", None, _("Change Units"), None, _(""), self.action_chUnits)
@@ -3753,7 +3759,7 @@ class NCam(gtk.VBox):
         self.actionSideSide.set_active(self.pref.side_by_side)
         self.actionSingleView.set_active(not self.pref.use_dual_views)
         self.actionDualView.set_active(self.pref.use_dual_views)
-        self.actionAutoRefresh.set_active(self.pref.autorefresh)
+        self.actionAutoRefresh.set_active(linuxcnc is not None and self.pref.autorefresh)
 
         self.actionCurrent.set_visible(not self.pref.autosave)
         self.name_cell.set_property('ellipsize', self.pref.name_ellipsis)
@@ -4598,6 +4604,9 @@ class NCam(gtk.VBox):
         fname = os.path.join(NGC_DIR, GENERATED_FILE)
         with open(fname, "w") as f:
             f.write(self.to_gcode())
+
+        if linuxcnc is None:
+            return False
 
         try:
             linuxCNC = linuxcnc.command()
@@ -5622,6 +5631,8 @@ if __name__ == "__main__":
         ini = None
 
     if (ini is not None) :
+        if linuxcnc is None:
+            err_exit(_('The LinuxCNC Python module is required for an INI configuration.'))
         if "-c" in optlist :
             catalog = optlist["-c"]
         elif "--catalog" in optlist :
